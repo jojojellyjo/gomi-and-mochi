@@ -1,94 +1,151 @@
-// Hana's hands: warm skin, glossy pink-nude nails with crisp white French tips.
-// Origin is the working fingertip; the wrist trails down and to the right.
+// Hana's hands: one smooth silhouette, tapered fingers, almond nails with crisp
+// white French tips that extend just past each fingertip.
+// Origin is the working fingertip; the wrist trails down (+y) before rotation.
 import { TAU } from './textures.js';
 
-const SKIN = '#f2cfae', SKIN_SH = '#dfb08c', LINE = 'rgba(120,70,40,.45)';
-let NAIL = '#f6cfc9', TIP = '#fffaf4', SLEEVE = '#efe6d6', SLEEVE_SH = '#d9ccb6', SKIN_C = SKIN;
+const HANA_STYLE = {
+  skin: '#f3d2b3', skinSh: '#e2b693', line: '#b98466',
+  nail: '#f5c9c4', tip: '#fffaf5', french: true,
+  sleeve: '#f1e8d8', sleeveSh: '#dccfb8',
+};
+const ELDER_STYLE = {
+  skin: '#efd2bb', skinSh: '#dbb69c', line: '#b08a72',
+  nail: '#ecd3c9', tip: '#ecd3c9', french: false,
+  sleeve: '#9a86b0', sleeveSh: '#7d6a94',
+};
 
-function nail(x, len, wid) {
-  // drawn along -y from the fingertip end
+// a finger: base at (bx, by), pointing along angle a (0 = up, clockwise +)
+const F = (bx, by, a, len, w) => ({ bx, by, a, len, w });
+
+const POSES = {
+  point: {
+    palm: [-24, 66, 100, 96, 34],
+    fingers: [F(0, 96, 0, 96, 23)],
+    thumb: F(-16, 132, -0.42, 58, 25),
+    knuckles: [[22, 76], [44, 80], [64, 88]],
+  },
+  pinch: {
+    palm: [-30, 62, 108, 98, 36],
+    fingers: [F(20, 92, -0.22, 94, 23)],
+    thumb: F(-36, 58, 0.7, 60, 26),
+    knuckles: [[40, 74], [58, 82], [72, 94]],
+  },
+  press: {
+    palm: [-16, 52, 104, 100, 34],
+    fingers: [F(4, 70, -0.1, 70, 22), F(28, 64, -0.02, 78, 23), F(52, 68, 0.06, 74, 22), F(74, 78, 0.16, 60, 19)],
+    thumb: F(84, 118, 1.0, 56, 25),
+  },
+};
+
+function fingerPath(x, f) {
+  const { len, w } = f, tw = w * 0.84;
   x.save();
-  x.fillStyle = NAIL;
-  x.beginPath(); x.roundRect(-wid / 2, 2, wid, len, [wid / 2, wid / 2, 3, 3]); x.fill();
-  x.fillStyle = TIP;
-  x.beginPath(); x.moveTo(-wid / 2, 2 + wid / 2);
-  x.arc(0, 2 + wid / 2, wid / 2, Math.PI, 0);
-  x.quadraticCurveTo(0, 2 + len * 0.55, -wid / 2, 2 + wid / 2);
-  x.fill();
-  x.fillStyle = 'rgba(255,255,255,.65)';
-  x.beginPath(); x.ellipse(-wid * 0.18, 2 + len * 0.45, wid * 0.1, len * 0.28, 0, 0, TAU); x.fill();
-  x.strokeStyle = 'rgba(160,100,90,.35)'; x.lineWidth = 0.8;
-  x.beginPath(); x.roundRect(-wid / 2, 2, wid, len, [wid / 2, wid / 2, 3, 3]); x.stroke();
+  x.translate(f.bx, f.by);
+  x.rotate(f.a);
+  x.moveTo(-w / 2, 0);
+  x.bezierCurveTo(-w / 2, -len * 0.5, -tw / 2, -len + tw * 0.7, -tw / 2, -len + tw / 2);
+  x.arc(0, -len + tw / 2, tw / 2, Math.PI, 0);
+  x.bezierCurveTo(tw / 2, -len + tw * 0.7, w / 2, -len * 0.5, w / 2, 0);
   x.restore();
 }
 
-function finger(x, len, wid, curl = 0, showNail = true) {
+function drawNail(x, f, st) {
+  const { len, w } = f, nw = w * 0.66, nl = w * 0.95;
   x.save();
-  x.fillStyle = SKIN; x.strokeStyle = LINE; x.lineWidth = 1.5;
-  x.beginPath(); x.roundRect(-wid / 2, 0, wid, len, wid / 2); x.fill(); x.stroke();
-  x.strokeStyle = 'rgba(150,90,60,.25)'; x.lineWidth = 1;
-  x.beginPath(); x.moveTo(-wid * 0.3, len * 0.55); x.quadraticCurveTo(0, len * 0.6, wid * 0.3, len * 0.55); x.stroke();
-  if (showNail && !curl) nail(x, wid * 1.15, wid * 0.72);
+  x.translate(f.bx, f.by);
+  x.rotate(f.a);
+  x.translate(0, -len + w * 0.2);
+  // almond nail: the free edge sits just past the fingertip
+  const path = () => {
+    x.beginPath();
+    x.moveTo(-nw / 2, nl * 0.75);
+    x.bezierCurveTo(-nw / 2, nl * 0.05, -nw * 0.46, -nl * 0.36, 0, -nl * 0.38);
+    x.bezierCurveTo(nw * 0.46, -nl * 0.36, nw / 2, nl * 0.05, nw / 2, nl * 0.75);
+    x.quadraticCurveTo(0, nl * 0.88, -nw / 2, nl * 0.75);
+    x.closePath();
+  };
+  path();
+  x.fillStyle = st.nail; x.fill();
+  if (st.french) {
+    x.save(); path(); x.clip();
+    x.fillStyle = st.tip;
+    x.beginPath();
+    x.moveTo(-nw, -nl);
+    x.lineTo(nw, -nl);
+    x.lineTo(nw, -nl * 0.02);
+    x.quadraticCurveTo(0, nl * 0.32, -nw, -nl * 0.02);
+    x.closePath(); x.fill();
+    x.restore();
+  }
+  x.fillStyle = 'rgba(255,255,255,.7)';
+  x.beginPath(); x.ellipse(-nw * 0.18, nl * 0.18, nw * 0.09, nl * 0.3, 0.05, 0, TAU); x.fill();
+  path();
+  x.strokeStyle = 'rgba(170,110,100,.45)'; x.lineWidth = 0.9; x.stroke();
   x.restore();
 }
 
-function sleeve(x) {
+function knuckleLines(x, f, st) {
+  const { len, w } = f;
   x.save();
-  x.fillStyle = SLEEVE;
-  x.beginPath(); x.roundRect(30, 120, 120, 70, 24); x.fill();
-  x.strokeStyle = SLEEVE_SH; x.lineWidth = 3;
-  for (let i = 0; i < 6; i++) { x.beginPath(); x.moveTo(40 + i * 18, 124); x.lineTo(40 + i * 18, 186); x.stroke(); }
+  x.translate(f.bx, f.by); x.rotate(f.a);
+  x.strokeStyle = st.skinSh; x.lineWidth = 1.4; x.lineCap = 'round';
+  for (const k of [0.38, 0.62]) {
+    x.beginPath(); x.moveTo(-w * 0.22, -len * k); x.quadraticCurveTo(0, -len * k + 2.5, w * 0.22, -len * k); x.stroke();
+  }
   x.restore();
 }
 
-// pose: 'point' (index fingertip at origin), 'pinch' (thumb + index meet at origin), 'press' (flat palm, fingertips at origin)
+function sleeve(x, st, pose) {
+  const y0 = pose === 'press' ? 140 : 146;
+  x.save();
+  x.fillStyle = st.sleeve;
+  x.beginPath(); x.roundRect(-40, y0, 132, 110, 28); x.fill();
+  x.strokeStyle = st.sleeveSh; x.lineWidth = 3; x.lineCap = 'round';
+  for (let i = 0; i < 7; i++) { x.beginPath(); x.moveTo(-28 + i * 18, y0 + 8); x.lineTo(-28 + i * 18, y0 + 100); x.stroke(); }
+  x.fillStyle = 'rgba(0,0,0,.06)'; x.fillRect(-40, y0, 132, 10);
+  x.restore();
+}
+
+// pose: 'point' | 'pinch' | 'press'
 export function drawHand(x, { pose = 'point', s = 1, flip = false, rot = -0.55, elder = false } = {}) {
-  if (elder) { NAIL = '#efd9cf'; TIP = '#efd9cf'; SLEEVE = '#9a86b0'; SLEEVE_SH = '#7d6a94'; }
+  const st = elder ? ELDER_STYLE : HANA_STYLE;
+  const P = POSES[pose];
   x.save();
   x.scale(flip ? -s : s, s);
   x.rotate(rot);
   x.lineJoin = 'round';
-  if (pose === 'press') {
-    sleeve(x);
-    x.fillStyle = SKIN; x.strokeStyle = LINE; x.lineWidth = 1.5;
-    x.beginPath(); x.roundRect(10, 44, 96, 90, 34); x.fill(); x.stroke();
-    [[18, 0, 58], [42, -8, 66], [66, -4, 62], [88, 8, 52]].forEach(([fx, fy, len]) => {
-      x.save(); x.translate(fx, fy); finger(x, len, 21); x.restore();
-    });
-    x.save(); x.translate(106, 70); x.rotate(-0.9); finger(x, 46, 22); x.restore();
-    x.restore();
-    resetColours();
-    return;
-  }
-  // sleeve trails toward the wrist
-  x.save();
-  x.fillStyle = SLEEVE;
-  x.beginPath(); x.roundRect(-34, 128, 116, 90, 26); x.fill();
-  x.strokeStyle = SLEEVE_SH; x.lineWidth = 3;
-  for (let i = 0; i < 6; i++) { x.beginPath(); x.moveTo(-24 + i * 18, 134); x.lineTo(-24 + i * 18, 212); x.stroke(); }
-  x.restore();
-  const knuckles = (x0, y0) => {
-    for (let i = 0; i < 3; i++) {
-      x.fillStyle = SKIN_SH; x.beginPath(); x.roundRect(x0 + i * 19, y0 + i * 6 + 4, 21, 32, 10); x.fill();
-      x.fillStyle = SKIN; x.strokeStyle = LINE; x.lineWidth = 1.5;
-      x.beginPath(); x.roundRect(x0 + i * 19, y0 + i * 6, 21, 30, 10); x.fill(); x.stroke();
-    }
-  };
-  if (pose === 'pinch') {
-    x.save(); x.rotate(-0.25); finger(x, 72, 20); x.restore();
-    x.fillStyle = SKIN; x.strokeStyle = LINE; x.lineWidth = 1.5;
-    x.beginPath(); x.roundRect(-30, 50, 102, 96, 34); x.fill(); x.stroke();
-    knuckles(22, 50);
-    x.save(); x.rotate(0.62); finger(x, 60, 22); x.restore();
-  } else {
-    finger(x, 82, 20);
-    x.fillStyle = SKIN; x.strokeStyle = LINE; x.lineWidth = 1.5;
-    x.beginPath(); x.roundRect(-16, 62, 92, 90, 32); x.fill(); x.stroke();
-    knuckles(12, 58);
-    x.save(); x.translate(-14, 104); x.rotate(-0.55); x.translate(0, -44); finger(x, 50, 22); x.restore();
-  }
-  x.restore();
-  resetColours();
-}
+  sleeve(x, st, pose);
 
-function resetColours() { NAIL = '#f6cfc9'; TIP = '#fffaf4'; SLEEVE = '#efe6d6'; SLEEVE_SH = '#d9ccb6'; }
+  const silhouette = () => {
+    x.beginPath();
+    const [px, py, pw, ph, pr] = P.palm;
+    x.roundRect(px, py, pw, ph, pr);
+    for (const f of P.fingers) fingerPath(x, f);
+    fingerPath(x, P.thumb);
+    if (P.knuckles) for (const [kx, ky] of P.knuckles) { x.moveTo(kx + 14, ky); x.ellipse(kx, ky, 14, 17, 0, 0, TAU); }
+  };
+  // one outline around the whole hand, then fill over it so inner seams vanish
+  silhouette();
+  x.strokeStyle = st.line; x.lineWidth = 3.2; x.stroke();
+  silhouette();
+  x.fillStyle = st.skin; x.fill('nonzero');
+  x.save();
+  silhouette(); x.clip();
+  const g = x.createLinearGradient(0, 40, 0, 170);
+  g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(200,140,110,.25)');
+  x.fillStyle = g; x.fillRect(-60, 0, 200, 200);
+  if (P.knuckles) {
+    x.strokeStyle = st.skinSh; x.lineWidth = 1.6;
+    for (const [kx, ky] of P.knuckles) { x.beginPath(); x.arc(kx, ky + 4, 9, 0.3, Math.PI - 0.3); x.stroke(); }
+  }
+  x.strokeStyle = st.skinSh; x.lineWidth = 1.4;
+  const [px, py, pw] = P.palm;
+  x.beginPath(); x.moveTo(px + 18, py + 10); x.quadraticCurveTo(px + pw / 2, py + 2, px + pw - 18, py + 10); x.stroke();
+  x.restore();
+
+  for (const f of P.fingers) knuckleLines(x, f, st);
+  knuckleLines(x, P.thumb, st);
+  for (const f of P.fingers) drawNail(x, f, st);
+  drawNail(x, P.thumb, st);
+  x.restore();
+}

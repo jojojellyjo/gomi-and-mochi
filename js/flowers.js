@@ -245,34 +245,94 @@ export function flowerSprite(type, r) {
 }
 
 export const QUALITY_LABEL = {
-  perfect: 'Perfect press!',
+  perfect: 'Just right! Flat & vivid',
   good: 'Nicely pressed',
-  curled: 'A little curled',
-  browned: 'Over-pressed… a bit brown',
+  curled: 'Too loose: petals curled up',
+  browned: 'Too tight: squashed & bruised',
 };
+
+const mix = (a, b, t) => a + (b - a) * t;
 
 export function makePressed(type, quality) {
   const f = FLOWERS[type], r = 56, spike = f.shape === 'spike';
-  const c = mk(spike ? r * 1.7 : r * 2.4, spike ? r * 2.9 : r * 2.4);
-  const x = c.getContext('2d');
-  x.translate(c.width / 2, c.height / 2);
+  const W = spike ? r * 1.8 : r * 2.6, H = spike ? r * 3 : r * 2.6;
+  const c = mk(W, H), x = c.getContext('2d');
+  x.translate(W / 2, H / 2);
   x.rotate(rr(-0.15, 0.15));
-  if (quality === 'curled') x.scale(rr(0.8, 0.9), rr(0.62, 0.72));
-  x.globalAlpha = 0.93;
-  f.draw(x, r);
-  const mix = (a, b, t) => a + (b - a) * t;
-  if (quality === 'perfect') {
-    tint(c, (R, G, B) => { const l = (R + G + B) / 3; return [l + (R - l) * 1.12, l + (G - l) * 1.12, l + (B - l) * 1.12]; });
-  } else if (quality === 'good') {
-    tint(c, (R, G, B) => [mix(R, 246, 0.16), mix(G, 238, 0.16), mix(B, 222, 0.16)]);
+
+  if (quality === 'browned') {
+    // squashed flat and spread out
+    x.scale(1.12, 1.06);
+    x.globalAlpha = 0.86;
+    f.draw(x, r);
   } else if (quality === 'curled') {
-    tint(c, (R, G, B) => [R * 0.9, G * 0.88, B * 0.86]);
+    // petals lift and curl: drawn smaller and squished, a second offset pass for depth
+    x.save(); x.scale(0.92, 0.74); x.rotate(rr(-0.25, 0.25)); f.draw(x, r); x.restore();
   } else {
+    x.globalAlpha = 0.95;
+    f.draw(x, r);
+  }
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.globalAlpha = 1;
+
+  if (quality === 'perfect') {
+    tint(c, (R, G, B) => { const l = (R + G + B) / 3; return [l + (R - l) * 1.25, l + (G - l) * 1.25, l + (B - l) * 1.25]; });
+    // a fresh sheen
+    x.globalCompositeOperation = 'source-atop';
+    const g = x.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, 'rgba(255,255,255,.18)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,.08)');
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+  } else if (quality === 'good') {
+    tint(c, (R, G, B) => [mix(R, 246, 0.14), mix(G, 238, 0.14), mix(B, 222, 0.14)]);
+  } else if (quality === 'curled') {
+    tint(c, (R, G, B) => [R * 0.92, G * 0.9, B * 0.88]);
+    // edges darken where petals roll over, plus wrinkle lines
+    x.globalCompositeOperation = 'source-atop';
+    const g = x.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.12, W / 2, H / 2, Math.min(W, H) * 0.42);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(60,30,20,.45)');
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    x.strokeStyle = 'rgba(50,25,15,.35)'; x.lineWidth = 1.4;
+    for (let i = 0; i < 14; i++) {
+      const a = rr(0, TAU), d0 = rr(8, 20), d1 = d0 + rr(10, 26);
+      x.beginPath(); x.moveTo(W / 2 + Math.cos(a) * d0, H / 2 + Math.sin(a) * d0);
+      x.quadraticCurveTo(W / 2 + Math.cos(a + 0.3) * (d0 + d1) / 2, H / 2 + Math.sin(a + 0.3) * (d0 + d1) / 2, W / 2 + Math.cos(a) * d1, H / 2 + Math.sin(a) * d1);
+      x.stroke();
+    }
+    x.strokeStyle = 'rgba(255,250,240,.35)'; x.lineWidth = 1;
+    for (let i = 0; i < 8; i++) {
+      const a = rr(0, TAU), d = rr(16, 34);
+      x.beginPath(); x.arc(W / 2 + Math.cos(a) * d, H / 2 + Math.sin(a) * d, rr(3, 7), a, a + 1.6); x.stroke();
+    }
+  } else {
+    // too tight: bruised brown, translucent, cracked and a little torn
     tint(c, (R, G, B) => {
       const sr = 0.393 * R + 0.769 * G + 0.189 * B, sg = 0.349 * R + 0.686 * G + 0.168 * B, sb = 0.272 * R + 0.534 * G + 0.131 * B;
-      return [mix(R, sr * 0.72, 0.8), mix(G, sg * 0.66, 0.8), mix(B, sb * 0.6, 0.8)];
+      return [mix(R, sr * 0.7, 0.85), mix(G, sg * 0.58, 0.85), mix(B, sb * 0.45, 0.85)];
     });
+    x.globalCompositeOperation = 'source-atop';
+    for (let i = 0; i < 9; i++) {
+      const bx = rr(W * 0.2, W * 0.8), by = rr(H * 0.2, H * 0.8), br = rr(6, 16);
+      const g = x.createRadialGradient(bx, by, 0, bx, by, br);
+      g.addColorStop(0, 'rgba(70,35,15,.55)'); g.addColorStop(1, 'rgba(70,35,15,0)');
+      x.fillStyle = g; x.fillRect(bx - br, by - br, br * 2, br * 2);
+    }
+    x.strokeStyle = 'rgba(255,240,220,.6)'; x.lineWidth = 1.2;
+    for (let i = 0; i < 5; i++) {
+      let px = rr(W * 0.25, W * 0.75), py = rr(H * 0.25, H * 0.75);
+      x.beginPath(); x.moveTo(px, py);
+      for (let k = 0; k < 4; k++) { px += rr(-12, 12); py += rr(-12, 12); x.lineTo(px, py); }
+      x.stroke();
+    }
+    x.globalCompositeOperation = 'destination-out';
+    for (let i = 0; i < 5; i++) {
+      const a = rr(0, TAU), d = Math.min(W, H) * rr(0.3, 0.4);
+      x.beginPath(); x.arc(W / 2 + Math.cos(a) * d, H / 2 + Math.sin(a) * d, rr(3, 7), 0, TAU); x.fill();
+    }
   }
+  x.globalCompositeOperation = 'source-over';
   grain(c, 10);
-  return bake(c, { pad: 8, blur: 3, off: 1, alpha: 0.2 });
+  // loose petals stand up off the page, so they cast a bigger shadow
+  return quality === 'curled'
+    ? bake(c, { pad: 12, blur: 9, off: 5, alpha: 0.35 })
+    : bake(c, { pad: 8, blur: 3, off: 1, alpha: 0.18 });
 }

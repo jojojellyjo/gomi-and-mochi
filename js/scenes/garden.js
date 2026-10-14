@@ -6,7 +6,7 @@ import { mk, rr, pick, shuffle, lerp, TAU, grain, tint } from '../textures.js';
 import { sfx } from '../sfx.js';
 
 const BEDS = [{ x: 80, w: 340 }, { x: 470, w: 340 }, { x: 860, w: 340 }];
-const BED_Y = 560, BED_H = 74, LAWN_Y = 765, MAX = 4;
+const BED_Y = 560, BED_H = 74, LAWN_Y = 765, MAX = 3;
 
 let flowers, cat, btn, t, flying, butterflies, bgCache = null, frontCache = null;
 const heads = {}, squashed = {}, spikes = {};

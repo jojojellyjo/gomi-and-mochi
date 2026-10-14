@@ -139,22 +139,59 @@ function loaf(x, t) {
   head(x, 46, -50 - br, 24, true, t);
 }
 
-// A paw reaching in along +x; origin at the shoulder, paw tip at (len, 0).
+// A fluffy paw reaching in along +x; origin at the shoulder, paw centre at (len, 0).
 export function drawPaw(x, len) {
   x.save();
-  x.lineWidth = 3; x.strokeStyle = C.line;
-  x.fillStyle = C.body;
-  x.beginPath(); x.roundRect(-20, -22, len + 20, 44, 22); x.fill(); x.stroke();
-  x.save(); x.clip();
-  x.strokeStyle = C.dark; x.lineWidth = 7;
-  for (let sx = len - 70; sx > -20; sx -= 34) { x.beginPath(); x.moveTo(sx, -24); x.quadraticCurveTo(sx + 8, 0, sx, 24); x.stroke(); }
-  x.restore();
-  x.fillStyle = C.body;
-  x.beginPath(); x.arc(len, 0, 30, 0, TAU); x.fill(); x.stroke();
-  x.fillStyle = C.pink;
-  x.beginPath(); x.ellipse(len + 6, 4, 11, 9, 0, 0, TAU); x.fill();
-  for (const [bx, by] of [[len + 18, -14], [len + 24, 0], [len + 18, 14], [len + 6, -20]]) {
-    x.beginPath(); x.arc(bx, by, 5, 0, TAU); x.fill();
+  x.lineJoin = 'round'; x.lineCap = 'round';
+  const fluff = (x0, x1, wa, wb) => {
+    // tapered furry arm outline with little tufts along the edges
+    x.beginPath();
+    x.moveTo(x0, -wa);
+    for (let px = x0; px <= x1; px += 16) {
+      const k = (px - x0) / Math.max(1, x1 - x0), w = wa + (wb - wa) * k;
+      x.quadraticCurveTo(px + 8, -w - 5, px + 16, -w);
+    }
+    x.lineTo(x1, wb);
+    for (let px = x1; px >= x0; px -= 16) {
+      const k = (px - x0) / Math.max(1, x1 - x0), w = wa + (wb - wa) * k;
+      x.quadraticCurveTo(px - 8, w + 5, px - 16, w);
+    }
+    x.closePath();
+  };
+  const armEnd = len - 24;
+  fluff(-30, armEnd, 48, 38);
+  x.lineWidth = 6; x.strokeStyle = C.line; x.stroke();
+  x.fillStyle = C.body; x.fill();
+  // tabby stripes, curved with the arm
+  x.save(); fluff(-30, armEnd, 48, 38); x.clip();
+  x.strokeStyle = C.dark; x.lineWidth = 9;
+  for (let sx = armEnd - 50; sx > -40; sx -= 42) {
+    x.beginPath(); x.moveTo(sx - 6, -46); x.quadraticCurveTo(sx + 12, -6, sx - 2, 46); x.stroke();
   }
+  // lighter underside fur
+  x.fillStyle = 'rgba(248,220,180,.55)';
+  x.beginPath(); x.ellipse(armEnd * 0.5, 22, armEnd * 0.55, 12, 0, 0, TAU); x.fill();
+  x.restore();
+
+  // the paw: a round mitten with four toes at the front
+  const px = len, toes = [[30, -33, 16], [42, -12, 17], [42, 12, 17], [30, 33, 16]];
+  const pawShape = () => {
+    x.beginPath();
+    x.ellipse(px, 0, 44, 48, 0, 0, TAU);
+    for (const [tx, ty, r] of toes) { x.moveTo(px + tx + r, ty); x.arc(px + tx, ty, r, 0, TAU); }
+  };
+  pawShape(); x.lineWidth = 6; x.strokeStyle = C.line; x.stroke();
+  pawShape(); x.fillStyle = C.body; x.fill();
+  // toe separations + fur tufts
+  x.strokeStyle = C.line; x.lineWidth = 2.2;
+  for (const ty of [-23, 0, 23]) { x.beginPath(); x.moveTo(px + 28, ty); x.lineTo(px + 48, ty); x.stroke(); }
+  x.strokeStyle = 'rgba(255,240,220,.7)'; x.lineWidth = 2;
+  for (const [tx, ty] of [[-14, -20], [-18, 0], [-14, 20]]) { x.beginPath(); x.moveTo(px + tx, ty); x.lineTo(px + tx + 8, ty + 2); x.stroke(); }
+  // a peek of pink beans as the paw tips toward you
+  x.fillStyle = C.pink;
+  x.beginPath(); x.ellipse(px + 6, 4, 16, 14, 0, 0, TAU); x.fill();
+  for (const [tx, ty, r] of toes) { x.beginPath(); x.arc(px + tx + 2, ty, r * 0.45, 0, TAU); x.fill(); }
+  x.fillStyle = 'rgba(255,255,255,.45)';
+  x.beginPath(); x.ellipse(px, 0, 4, 3, 0, 0, TAU); x.fill();
   x.restore();
 }

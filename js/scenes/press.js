@@ -14,7 +14,7 @@ const NUTS = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
 const NUT_COL = ['#d9867d', '#7fa6c9', '#8fb36a', '#c9a24f'];
 const MX = 860, MY = 190, MW = 54, MH = 420, MAXV = 120;
 
-let queue, idx, phase, nuts, zone, held, holdT, top, shake, paw, result, fresh, boards = null, t, creakT;
+let queue, idx, phase, nuts, zone, held, holdT, top, shake, paw, result, fresh, boards = null, t, creakT, twist = null, loosen = false;
 let openBtn, nextBtn, lineup;
 
 function makeBoards() {
@@ -111,13 +111,14 @@ export const press = {
     top = lerp(top, phase === 'tighten' ? 0 : -620, 1 - Math.pow(0.0004, dt));
     shake = Math.max(0, shake - dt);
     if (phase === 'tighten') {
-      if (held >= 0) {
+      if (held >= 0 && (!twist || twist.still > 0.25)) {
         holdT += dt;
-        const rate = 18 + Math.min(holdT, 1.5) * 34;
-        nuts[held] = Math.min(MAXV, nuts[held] + rate * dt);
+        const rate = 40 + Math.min(holdT, 1.2) * 55;
+        nuts[held] = clamp(nuts[held] + (loosen ? -rate : rate) * dt, 0, MAXV);
         creakT -= dt;
-        if (creakT <= 0) { sfx.click(); creakT = 0.12; }
+        if (creakT <= 0) { sfx.click(); creakT = 0.1; }
       }
+      if (twist) twist.still += dt;
       openBtn.visible = Math.min(...nuts) > 10;
       if (!paw && nuts.some((n) => n > 25) && Math.random() < dt * 0.12) {
         const nut = Math.floor(Math.random() * 4);
@@ -149,7 +150,7 @@ export const press = {
     x.fillText(phase === 'done' ? 'Pressed and ready' : `The press · ${idx + 1} of ${queue.length}`, 34, 58);
     x.font = `25px ${F.hand}`;
     const hint = phase === 'ready' ? 'tap to close the press'
-      : phase === 'tighten' ? 'hold each wing nut to tighten it · keep all four even and in the green'
+      : phase === 'tighten' ? 'hold a wing nut to tighten · twist it clockwise to tighten, anticlockwise to unwind'
       : phase === 'result' ? result.why : 'your flowers are flat and lovely';
     x.fillText(hint, 36, 88);
     x.restore();
@@ -233,11 +234,31 @@ export const press = {
     if (phase === 'ready') { phase = 'tighten'; sfx.thunk(); return; }
     if (phase === 'tighten') {
       const i = nutAt(p);
-      if (i >= 0) { held = i; holdT = 0; }
+      if (i >= 0) {
+        held = i; holdT = 0; loosen = false;
+        const n = nutPos(i);
+        twist = { a: Math.atan2(p.y - n.y, p.x - n.x), still: 0 };
+      }
     }
   },
-  pointerup() { held = -1; },
+  pointerup() { held = -1; twist = null; loosen = false; },
   pointermove(p) {
+    if (twist && held >= 0) {
+      // twist round the nut: clockwise tightens, anticlockwise unwinds
+      const n = nutPos(held), a = Math.atan2(p.y - n.y, p.x - n.x);
+      let d = a - twist.a;
+      if (d > Math.PI) d -= TAU; else if (d < -Math.PI) d += TAU;
+      if (Math.hypot(p.x - n.x, p.y - n.y) > 14 && Math.abs(d) > 0.01) {
+        nuts[held] = clamp(nuts[held] + d * 26, 0, MAXV);
+        loosen = d < 0;
+        twist.still = 0; holdT = 0;
+        creakT -= Math.abs(d);
+        if (creakT <= 0) { sfx.click(); creakT = 0.35; }
+      }
+      twist.a = a;
+      game.cursor = 'grabbing';
+      return;
+    }
     const btns = [openBtn, nextBtn, lineup];
     let h = false;
     for (const b of btns) { b.hover = b.hit(p); h = h || b.hover; }
@@ -250,10 +271,10 @@ export const press = {
       else if (phase === 'tighten' && openBtn.visible) openPress();
       else if (phase === 'ready') phase = 'tighten';
     }
-    const k = { '1': 0, '2': 1, '3': 2, '4': 3 }[e.key];
-    if (k !== undefined && phase === 'tighten' && !e.repeat) { held = k; holdT = 0; }
+    const k = { '1': 0, '2': 1, '3': 2, '4': 3, '!': 0, '@': 1, '#': 2, '$': 3 }[e.key];
+    if (k !== undefined && phase === 'tighten' && !e.repeat) { held = k; holdT = 0; loosen = e.shiftKey; }
   },
-  keyup(e) { if ('1234'.includes(e.key)) held = -1; },
+  keyup(e) { if ('1234!@#$'.includes(e.key)) { held = -1; loosen = false; } },
 };
 
 function drawTopBoard(x, sx, sy) {

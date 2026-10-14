@@ -114,14 +114,15 @@ Day 3: … → Keepsake → Letter + wax seal → Ending → free play
 
 ### 3.1 Garden
 - Three raised beds, 12 flowers from 7 types: daisy, pansy, cosmos, nasturtium (edible), lavender, fern, mint (edible).
-- Tap a flower to pick it; up to **4** per day go into the basket.
+- Tap a flower to pick it; up to **3** per day go into the basket.
 - **Mochi** wanders in and naps on a bed. Flowers under Mochi can't be picked. If Mochi isn't shooed within ~3 s, Mochi **squashes** one.
 - Tap Mochi to shoo them away.
 
 ### 3.2 Press (even pressure)
 - One flower at a time on blotting paper in a wooden press with **four wing nuts**.
-- **Hold** a nut to tighten it (speeds up the longer you hold, so short taps are precise). Keyboard: hold 1–4.
+- **Hold** a nut to tighten it, or **twist** it: clockwise tightens, anticlockwise unwinds. Keyboard: hold 1–4 to tighten, Shift+1–4 to loosen.
 - A pressure gauge shows all four nuts against the flower's green band; an **evenness** bubble level shows the spread.
+- Each result looks visibly different: too loose = curled, wrinkled petals lifting off the page; too tight = squashed, bruised brown and cracked; just right = flat and vivid.
 - Open the press to see the result: **perfect** (all four in the band, spread ≤ 12), **good** (near the band, spread ≤ 22), **curled** (too loose or uneven), **browned** (a corner far too tight). A line explains why.
 - Each flower has its own band width (lavender forgiving, pansy and cosmos tight).
 - Mochi's paw sometimes reaches in and loosens or bumps a nut unless tapped away.
