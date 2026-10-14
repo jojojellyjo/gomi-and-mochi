@@ -58,7 +58,7 @@ window.addEventListener('keyup', (e) => {
   game.scene && game.scene.keyup && game.scene.keyup(e);
 });
 window.addEventListener('keydown', (e) => {
-  if (e.target && e.target.tagName === 'INPUT') return;
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
   sfx.unlock();
   game.scene && game.scene.keydown && game.scene.keydown(e);
 });

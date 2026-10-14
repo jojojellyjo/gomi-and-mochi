@@ -507,3 +507,296 @@ export function pawPrints() {
   }
   return inkWear(c, 120, 1.4);
 }
+
+/* ---------- more junk: papers, packaging, bits & bobs ---------- */
+
+const PASTELS = ['#f3d9a4', '#f2b8b0', '#bcd8c8', '#c9d3ee', '#f6e7a1', '#e3c9ef', '#f7cfdc', '#d4e6b5'];
+
+function tornScrap(w, h, fill, j = 5) {
+  const c = mk(w, h), x = c.getContext('2d');
+  pathPoly(x, tornPoly(w, h, { j, step: 6 }));
+  x.save(); x.clip();
+  fill(x, w, h);
+  x.restore();
+  return c;
+}
+
+const PATTERNS = {
+  floral(x, w, h) {
+    x.fillStyle = pick(['#f6e3e6', '#e8efe0', '#f4ead6', '#e6e6f4']); x.fillRect(0, 0, w, h);
+    const col = pick(['#d9867d', '#8f74c4', '#e0a54a', '#6f9f8a']);
+    for (let yy = 10; yy < h; yy += 34) for (let xx = (yy / 34) % 2 ? 24 : 6; xx < w; xx += 38) {
+      x.fillStyle = col;
+      for (let k = 0; k < 5; k++) { const a = (k / 5) * TAU; x.beginPath(); x.arc(xx + Math.cos(a) * 5, yy + Math.sin(a) * 5, 4, 0, TAU); x.fill(); }
+      x.fillStyle = '#f6d36b'; x.beginPath(); x.arc(xx, yy, 2.5, 0, TAU); x.fill();
+      x.fillStyle = '#8aa070'; x.beginPath(); x.ellipse(xx + 10, yy + 8, 5, 2.5, 0.6, 0, TAU); x.fill();
+    }
+  },
+  gingham(x, w, h) {
+    x.fillStyle = '#fbf8f0'; x.fillRect(0, 0, w, h);
+    x.fillStyle = pick(['rgba(217,110,110,.35)', 'rgba(110,150,200,.35)', 'rgba(120,160,90,.35)', 'rgba(200,160,60,.35)']);
+    for (let i = 0; i < w; i += 18) x.fillRect(i, 0, 9, h);
+    for (let j = 0; j < h; j += 18) x.fillRect(0, j, w, 9);
+  },
+  stripes(x, w, h) {
+    x.fillStyle = pick(PASTELS); x.fillRect(0, 0, w, h);
+    x.fillStyle = 'rgba(255,255,255,.6)';
+    for (let i = 0; i < w + h; i += 22) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + 10, 0); x.lineTo(i + 10 - h, h); x.lineTo(i - h, h); x.fill(); }
+  },
+  dots(x, w, h) {
+    x.fillStyle = pick(['#2f3b5c', '#c8707e', '#7f9c5b', '#e0a54a']); x.fillRect(0, 0, w, h);
+    x.fillStyle = 'rgba(255,250,240,.85)';
+    for (let yy = 8; yy < h; yy += 16) for (let xx = (yy / 16) % 2 ? 16 : 8; xx < w; xx += 16) { x.beginPath(); x.arc(xx, yy, 3, 0, TAU); x.fill(); }
+  },
+  music(x, w, h) {
+    x.fillStyle = '#f2ead6'; x.fillRect(0, 0, w, h);
+    x.strokeStyle = 'rgba(50,40,30,.55)'; x.fillStyle = 'rgba(40,30,20,.75)'; x.lineWidth = 1;
+    for (let s = 20; s < h - 30; s += 54) {
+      for (let l = 0; l < 5; l++) { x.beginPath(); x.moveTo(0, s + l * 7); x.lineTo(w, s + l * 7); x.stroke(); }
+      for (let n = 14; n < w - 6; n += rr(14, 24)) {
+        const ny = s + ri(-1, 8) * 3.5;
+        x.beginPath(); x.ellipse(n, ny, 4, 3, -0.4, 0, TAU); x.fill();
+        x.beginPath(); x.moveTo(n + 3.5, ny); x.lineTo(n + 3.5, ny - 20); x.stroke();
+      }
+    }
+  },
+  map(x, w, h) {
+    x.fillStyle = '#efe6cf'; x.fillRect(0, 0, w, h);
+    x.fillStyle = 'rgba(140,180,200,.55)';
+    x.beginPath(); x.moveTo(0, h * 0.6); x.bezierCurveTo(w * 0.3, h * 0.4, w * 0.6, h * 0.9, w, h * 0.7); x.lineTo(w, h); x.lineTo(0, h); x.fill();
+    x.strokeStyle = 'rgba(190,110,80,.6)'; x.lineWidth = 2; x.setLineDash([5, 4]);
+    x.beginPath(); x.moveTo(10, 20); x.bezierCurveTo(w * 0.4, 10, w * 0.3, h * 0.5, w - 20, h * 0.35); x.stroke(); x.setLineDash([]);
+    x.strokeStyle = 'rgba(120,100,70,.25)'; x.lineWidth = 1;
+    for (let i = 0; i < w; i += 30) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, h); x.stroke(); }
+    for (let j = 0; j < h; j += 30) { x.beginPath(); x.moveTo(0, j); x.lineTo(w, j); x.stroke(); }
+    x.fillStyle = '#c0574b'; x.beginPath(); x.arc(w - 20, h * 0.35, 5, 0, TAU); x.fill();
+  },
+  ledger(x, w, h) {
+    x.fillStyle = '#eef2e2'; x.fillRect(0, 0, w, h);
+    x.strokeStyle = 'rgba(90,140,110,.35)'; x.lineWidth = 1;
+    for (let j = 14; j < h; j += 14) { x.beginPath(); x.moveTo(0, j); x.lineTo(w, j); x.stroke(); }
+    x.strokeStyle = 'rgba(200,90,90,.4)';
+    for (const xx of [w * 0.6, w * 0.8]) { x.beginPath(); x.moveTo(xx, 0); x.lineTo(xx, h); x.stroke(); }
+    x.fillStyle = 'rgba(60,60,80,.6)'; x.font = `11px ${F.type}`;
+    for (let j = 25; j < h; j += 28) x.fillText((rr(1, 40)).toFixed(2), w * 0.62, j);
+  },
+};
+function patternPaper(kind) {
+  const w = ri(150, 210), h = ri(120, 180);
+  return bake(grain(tornScrap(w, h, PATTERNS[kind]), 12), { pad: 10, blur: 5, off: 2 });
+}
+
+function magazine() {
+  const w = 190, h = 230;
+  const c = tornScrap(w, h, (x) => {
+    const g = x.createLinearGradient(0, 0, w, h);
+    const [a, b] = pick([['#f4b8a8', '#f7e0b5'], ['#b8d8e8', '#e8d8f0'], ['#c8e0b8', '#f0e8c0'], ['#e8b8c8', '#c8b8e8']]);
+    g.addColorStop(0, a); g.addColorStop(1, b);
+    x.fillStyle = g; x.fillRect(0, 0, w, h);
+    x.fillStyle = 'rgba(255,255,255,.35)';
+    for (let i = 0; i < 4; i++) { x.beginPath(); x.arc(rr(0, w), rr(0, h), rr(20, 60), 0, TAU); x.fill(); }
+    x.fillStyle = '#2b2622'; x.font = `900 44px ${F.serif}`;
+    x.fillText(pick(['SPRING', 'bloom', 'SLOW', 'cozy', 'GROW', 'soft']), 12, 60);
+    x.font = `italic 16px ${F.serif}`;
+    x.fillText(pick(['the little things issue', '10 ways to slow down', 'plants we love', 'a quiet weekend']), 14, 86);
+    x.fillStyle = 'rgba(40,30,20,.5)';
+    for (let ly = 160; ly < h - 10; ly += 8) x.fillRect(14, ly, rr(90, 160), 2.4);
+  }, 6);
+  return bake(grain(c, 10), { pad: 10, blur: 6, off: 2 });
+}
+
+function brochure() {
+  const w = 160, h = 240, c = mk(w, h), x = c.getContext('2d');
+  x.fillStyle = '#fbf8f0'; x.fillRect(0, 0, w, h);
+  const col = pick(['#7f9c5b', '#c8707e', '#4f7aa0', '#c9a24f']);
+  x.fillStyle = col; x.fillRect(0, 0, w, 64);
+  x.fillStyle = '#fffdf5'; x.font = `600 22px ${F.serif}`;
+  x.fillText(pick(['Garden Tour', 'Tea Fest', 'Rink Night', 'Craft Fair', 'Plant Swap']), 12, 40);
+  x.font = `12px ${F.serif}`; x.fillText(pick(['open every weekend', 'free entry · all welcome', 'saturday 10am–4pm']), 12, 56);
+  x.save(); x.beginPath(); x.rect(12, 76, w - 24, 80); x.clip();
+  x.fillStyle = '#dfe9dc'; x.fillRect(12, 76, w - 24, 80);
+  x.save(); x.translate(w / 2 - 30, 116); drawFlower(x, pick(FLOWER_TYPES), 26); x.restore();
+  x.save(); x.translate(w / 2 + 30, 120); drawFlower(x, pick(FLOWER_TYPES), 22); x.restore();
+  x.restore();
+  x.fillStyle = 'rgba(60,50,40,.5)';
+  for (let ly = 172; ly < h - 16; ly += 8) x.fillRect(12, ly, rr(80, w - 24), 2.2);
+  x.strokeStyle = 'rgba(0,0,0,.08)'; x.beginPath(); x.moveTo(0, h * 0.5); x.lineTo(w, h * 0.5); x.stroke();
+  return bake(grain(c, 8));
+}
+
+function wrapper() {
+  const w = 200, h = 90, c = mk(w, h), x = c.getContext('2d');
+  const [a, b] = pick([['#e85d75', '#f7b0bd'], ['#4fa3c8', '#a8dcef'], ['#f0b33c', '#fbe08a'], ['#7cbf6a', '#c6eab4'], ['#9b7fd0', '#d4c3f2']]);
+  const g = x.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, b); g.addColorStop(0.45, a); g.addColorStop(0.55, a); g.addColorStop(1, b);
+  x.fillStyle = g;
+  x.beginPath(); x.moveTo(0, 18); x.lineTo(40, 30); x.lineTo(160, 30); x.lineTo(w, 18); x.lineTo(w, h - 18); x.lineTo(160, h - 30); x.lineTo(40, h - 30); x.lineTo(0, h - 18);
+  for (let k = 0; k < 4; k++) x.lineTo(k % 2 ? 6 : 0, h - 18 - k * 14);
+  x.closePath(); x.fill();
+  x.fillStyle = 'rgba(255,255,255,.55)'; x.fillRect(42, 36, 116, 5);
+  x.fillStyle = '#fffdf5'; x.font = `700 italic 22px ${F.serif}`; x.textAlign = 'center';
+  x.fillText(pick(['yum!', 'sweet', 'mochi', 'yuzu', 'berry']), w / 2, h / 2 + 8);
+  x.strokeStyle = 'rgba(0,0,0,.12)';
+  for (const xx of [8, 18, 28, 172, 182, 192]) { x.beginPath(); x.moveTo(xx, 22); x.lineTo(xx, h - 22); x.stroke(); }
+  return bake(c);
+}
+
+function cosmeticBox() {
+  const w = 120, h = 170;
+  const c = tornScrap(w, h, (x) => {
+    x.fillStyle = pick(['#f2c9cf', '#e8d6c8', '#d9c8e8', '#c8e0d6']); x.fillRect(0, 0, w, h);
+    x.strokeStyle = 'rgba(170,120,60,.8)'; x.lineWidth = 2; x.strokeRect(10, 10, w - 20, h - 20);
+    x.fillStyle = '#7a4a4a'; x.font = `italic 600 22px ${F.serif}`; x.textAlign = 'center';
+    x.fillText(pick(['rosé', 'petal', 'blush', 'velvet']), w / 2, 70);
+    x.font = `11px ${F.type}`; x.fillText('no. ' + ri(1, 40), w / 2, 92);
+    x.fillStyle = 'rgba(170,120,60,.8)';
+    for (let k = 0; k < 6; k++) { const a = (k / 6) * TAU; x.beginPath(); x.arc(w / 2 + Math.cos(a) * 9, 124 + Math.sin(a) * 9, 4, 0, TAU); x.fill(); }
+  }, 4);
+  return bake(grain(c, 8));
+}
+
+function postit(text) {
+  const s = 130, c = mk(s, s), x = c.getContext('2d');
+  const col = pick(['#fbe57a', '#f7b6c8', '#a8dcef', '#c6eab4', '#f9c58a']);
+  x.fillStyle = col; x.fillRect(0, 0, s, s);
+  x.fillStyle = 'rgba(0,0,0,.06)'; x.fillRect(0, 0, s, 22);
+  x.fillStyle = 'rgba(255,255,255,.25)';
+  x.beginPath(); x.moveTo(s, s - 22); x.lineTo(s - 22, s); x.lineTo(s, s); x.fill();
+  x.fillStyle = '#2f2a3a'; x.font = `26px ${F.hand}`;
+  const words = (text || pick(['buy more washi', 'call nana ♥', 'water the mint!', 'you got this', 'matcha @ 3?', 'skate sat', 'remember: rest'])).split(' ');
+  let line = '', y = 50;
+  for (const wd of words) {
+    if (x.measureText(line + wd).width > s - 22 && line) { x.fillText(line, 12, y); line = ''; y += 28; }
+    line += wd + ' ';
+  }
+  x.fillText(line, 12, y);
+  return bake(c, { pad: 10, blur: 6, off: 3, alpha: 0.25 });
+}
+export { postit };
+
+function filmStrip() {
+  const w = 240, h = 80, c = mk(w, h), x = c.getContext('2d');
+  x.fillStyle = '#2a2420'; x.fillRect(0, 0, w, h);
+  x.fillStyle = '#f2e6cf';
+  for (let i = 6; i < w; i += 14) { x.fillRect(i, 5, 7, 7); x.fillRect(i, h - 12, 7, 7); }
+  for (let f = 0; f < 3; f++) {
+    const fx = 10 + f * 77;
+    const g = x.createLinearGradient(0, 16, 0, 64);
+    g.addColorStop(0, pick(['#e9a46a', '#8fb3c9', '#c9a2c4', '#9cc28a'])); g.addColorStop(1, '#3a2e28');
+    x.fillStyle = g; x.fillRect(fx, 16, 70, 48);
+  }
+  return bake(c, { pad: 8, blur: 4, off: 2 });
+}
+
+function fortune() {
+  const w = 210, h = 46, c = mk(w, h), x = c.getContext('2d');
+  x.fillStyle = '#fbf8f0'; x.fillRect(0, 0, w, h);
+  x.fillStyle = '#b8403a'; x.font = `13px ${F.type}`; x.textAlign = 'center';
+  x.fillText(pick(['Good things are blooming.', 'Rest is productive too.', 'A small joy is near.', 'Your patience will flower.', 'Keep the little things.']), w / 2, 22);
+  x.font = `10px ${F.type}`; x.fillText('lucky: ' + [ri(1, 9), ri(10, 29), ri(30, 49)].join(' · '), w / 2, 36);
+  return bake(c, { pad: 8, blur: 3, off: 1 });
+}
+
+function libraryCard() {
+  const w = 150, h = 210, c = mk(w, h), x = c.getContext('2d');
+  x.fillStyle = '#f2e8c8'; x.fillRect(0, 0, w, h);
+  x.fillStyle = '#3a2e28'; x.font = `12px ${F.type}`; x.fillText('DATE DUE', 12, 22);
+  x.strokeStyle = 'rgba(200,80,80,.5)'; x.beginPath(); x.moveTo(0, 30); x.lineTo(w, 30); x.stroke();
+  x.strokeStyle = 'rgba(80,110,150,.3)';
+  for (let j = 48; j < h; j += 18) { x.beginPath(); x.moveTo(0, j); x.lineTo(w, j); x.stroke(); }
+  x.strokeStyle = 'rgba(80,110,150,.3)'; x.beginPath(); x.moveTo(60, 30); x.lineTo(60, h); x.stroke();
+  x.fillStyle = 'rgba(150,50,60,.75)'; x.font = `12px ${F.type}`;
+  for (let j = 0; j < ri(3, 6); j++) x.fillText(`${MONTHS[ri(0, 11)]} ${ri(1, 28)}`, 10, 62 + j * 18);
+  x.globalCompositeOperation = 'destination-out'; x.beginPath(); x.arc(w / 2, 8, 0, 0, TAU); x.fill();
+  return bake(grain(c, 10));
+}
+
+function miniEnvelope() {
+  const w = 160, h = 104, c = mk(w, h), x = c.getContext('2d');
+  x.fillStyle = pick(['#e8d6b8', '#f2d0d0', '#d0dff0', '#dfe8cf']); x.fillRect(0, 0, w, h);
+  x.strokeStyle = 'rgba(80,60,40,.25)'; x.lineWidth = 1.5;
+  x.beginPath(); x.moveTo(0, 0); x.lineTo(w / 2, h * 0.58); x.lineTo(w, 0); x.moveTo(0, h); x.lineTo(w * 0.42, h * 0.48); x.moveTo(w, h); x.lineTo(w * 0.58, h * 0.48); x.stroke();
+  return bake(grain(c, 10));
+}
+
+function button() {
+  const s = 46, c = mk(s, s), x = c.getContext('2d');
+  const col = pick(['#c8707e', '#7fa6c9', '#8fb36a', '#e0a54a', '#f2efe6', '#5a4a6a']);
+  x.fillStyle = col; x.beginPath(); x.arc(s / 2, s / 2, 20, 0, TAU); x.fill();
+  x.strokeStyle = 'rgba(0,0,0,.18)'; x.lineWidth = 2; x.beginPath(); x.arc(s / 2, s / 2, 15, 0, TAU); x.stroke();
+  x.fillStyle = 'rgba(255,255,255,.3)'; x.beginPath(); x.arc(s / 2 - 6, s / 2 - 7, 6, 0, TAU); x.fill();
+  x.globalCompositeOperation = 'destination-out';
+  for (const [a, b] of [[-5, -5], [5, -5], [-5, 5], [5, 5]]) { x.beginPath(); x.arc(s / 2 + a, s / 2 + b, 2.6, 0, TAU); x.fill(); }
+  return bake(c, { pad: 6, blur: 3, off: 2, alpha: 0.35 });
+}
+
+function paperclip() {
+  const w = 40, h = 110, c = mk(w, h), x = c.getContext('2d');
+  x.strokeStyle = pick(['#9a9aa4', '#d9867d', '#7fa6c9', '#c9a24f']); x.lineWidth = 3.5; x.lineCap = 'round';
+  x.beginPath();
+  x.moveTo(26, 30); x.lineTo(26, 86); x.arc(19, 86, 7, 0, Math.PI); x.lineTo(12, 18); x.arc(21, 18, 9, Math.PI, 0); x.lineTo(30, 96); x.arc(19, 96, 11, 0, Math.PI); x.lineTo(8, 40);
+  x.stroke();
+  return bake(c, { pad: 6, blur: 3, off: 2, alpha: 0.3 });
+}
+
+function twine() {
+  const w = 220, h = 70, c = mk(w, h), x = c.getContext('2d');
+  x.lineCap = 'round';
+  const path = () => { x.beginPath(); x.moveTo(6, 40); x.bezierCurveTo(60, 0, 90, 70, 130, 30); x.bezierCurveTo(160, 6, 190, 60, 214, 30); };
+  path(); x.strokeStyle = '#b8946a'; x.lineWidth = 4; x.stroke();
+  x.setLineDash([3, 4]); path(); x.strokeStyle = '#e8d2b0'; x.lineWidth = 1.5; x.stroke();
+  return bake(c, { pad: 6, blur: 3, off: 2, alpha: 0.3 });
+}
+
+function pressedLeaf() {
+  const w = 120, h = 160, c = mk(w, h), x = c.getContext('2d');
+  x.translate(w / 2, h / 2);
+  x.rotate(rr(-0.4, 0.4));
+  const col = pick([['#c97b3c', '#e8b060'], ['#a8442f', '#e07a4a'], ['#8aa060', '#c6d68a'], ['#d4a63c', '#f2d27a']]);
+  const g = x.createLinearGradient(0, 60, 0, -60); g.addColorStop(0, col[0]); g.addColorStop(1, col[1]);
+  x.fillStyle = g;
+  x.beginPath(); x.moveTo(0, 62);
+  x.bezierCurveTo(46, 30, 44, -30, 0, -66); x.bezierCurveTo(-44, -30, -46, 30, 0, 62); x.fill();
+  x.strokeStyle = 'rgba(90,50,20,.45)'; x.lineWidth = 1.5;
+  x.beginPath(); x.moveTo(0, 74); x.lineTo(0, -60); x.stroke();
+  for (let k = -3; k <= 3; k++) { x.beginPath(); x.moveTo(0, k * 14); x.lineTo(26, k * 14 - 14); x.moveTo(0, k * 14); x.lineTo(-26, k * 14 - 14); x.stroke(); }
+  return bake(grain(c, 10), { pad: 6, blur: 3, off: 1, alpha: 0.2 });
+}
+
+// The junk box: categories with several variants of each piece.
+export const JUNK = {
+  Paper: [
+    ...['floral', 'gingham', 'stripes', 'dots', 'music', 'map', 'ledger'].map((k) => ({ label: k === 'music' ? 'sheet music' : k + ' paper', make: () => patternPaper(k), n: k === 'floral' || k === 'gingham' ? 2 : 1 })),
+    { label: 'magazine', make: magazine, n: 2 },
+    { label: 'brochure', make: brochure, n: 2 },
+    { label: 'newspaper', make: newsScrap, n: 1 },
+    { label: 'bujo list', make: bujoNote, n: 1 },
+    { label: 'post-it', make: () => postit(), n: 3 },
+    { label: 'lace', make: lace, n: 1 },
+  ],
+  Ephemera: [
+    { label: 'ticket', make: ticket, n: 3 },
+    { label: 'café receipt', make: receipt, n: 2 },
+    { label: 'polaroid', make: polaroid, n: 3 },
+    { label: 'postage', make: postage, n: 2 },
+    { label: 'wax seal', make: waxSeal, n: 3 },
+    { label: 'kraft tag', make: kraftTag, n: 2 },
+    { label: 'tea bag', make: teaBag, n: 1 },
+    { label: 'film strip', make: filmStrip, n: 1 },
+    { label: 'fortune', make: fortune, n: 2 },
+    { label: 'library card', make: libraryCard, n: 1 },
+    { label: 'envelope', make: miniEnvelope, n: 1 },
+    { label: 'sweet wrapper', make: wrapper, n: 2 },
+    { label: 'blush box', make: cosmeticBox, n: 1 },
+    { label: 'leather label', make: leather, n: 1 },
+  ],
+  Bits: [
+    { label: 'origami crane', make: crane, n: 2 },
+    { label: 'wire heart', make: wireArt, n: 1 },
+    { label: 'button', make: button, n: 4 },
+    { label: 'paper clip', make: paperclip, n: 2 },
+    { label: 'twine', make: twine, n: 1 },
+    { label: 'pressed leaf', make: pressedLeaf, n: 3 },
+    { label: 'sticker', make: sticker, n: 6 },
+  ],
+};

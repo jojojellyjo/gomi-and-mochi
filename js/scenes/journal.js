@@ -3,22 +3,25 @@ import { Button, F, INK, toasts } from '../ui.js';
 import { getDesk } from '../bg.js';
 import { drawCat, CAT_NAME } from '../cat.js';
 import { FLOWERS } from '../flowers.js';
-import { mk, rr, pick, shuffle, clamp, TAU, pageTex, PAGE_KINDS } from '../textures.js';
-import { SCRAPS, WASHI, STAMPS, washiThumb, makeTapeStrip, pawPrints } from '../ephemera.js';
-import { photoScraps } from '../photos.js';
+import { mk, rr, pick, clamp, TAU, pageTex, PAGE_KINDS, bake } from '../textures.js';
+import { JUNK, WASHI, STAMPS, washiThumb, makeTapeStrip, pawPrints, postit } from '../ephemera.js';
+import { photoScraps, toSprite } from '../photos.js';
 import { sfx } from '../sfx.js';
 
 export const SP = { x: 40, y: 104, w: 960, h: 640 };
 const PW = SP.w / 2;
 const TRAY = { x: 1018, y: 104, w: 246, h: 640 };
-const TABS = ['Flowers', 'Scraps', 'Tape', 'Stamps'];
-const CELL = { w: 113, h: 104, gap: 6, top: 46 };
+const TABS = ['Flowers', 'Paper', 'Finds', 'Bits', 'Tape', 'Stamps', 'Photos'];
+const TAB_W = TRAY.w / 4, TAB_H = 30;
+const LIST = { top: TRAY.y + 2 * TAB_H + 16, bottom: TRAY.y + TRAY.h - 46 };
+const CELL = { w: 113, h: 104, gap: 6 };
 
-let layers = [], undo = [], sel = null, drag = null, tool = null, tab = 0, tray = null;
-let pageKind = 0, pages = null, buttons = [], t = 0, cat = null, catTimer = 0, firstCat = true, hover = null;
-let shadow = null, hintShown = false;
+let layers = [], undo = [], sel = null, drag = null, tool = null, tab = 0, tray = null, scroll = [];
+let pageKind = 0, pages = null, buttons = [], t = 0, cat = null, catTimer = 0, firstCat = true;
+let shadow = null, hintShown = false, glueFx = [];
+let fileInput = null;
 
-/* ---------- sprites & hit tests ---------- */
+/* ---------- geometry ---------- */
 
 const alphaCache = new WeakMap();
 function alphaAt(sprite, lx, ly) {
@@ -30,10 +33,10 @@ function alphaAt(sprite, lx, ly) {
 }
 function toLocal(L, p) {
   const dx = p.x - L.x, dy = p.y - L.y, c = Math.cos(-L.rot), s = Math.sin(-L.rot);
-  return { x: (dx * c - dy * s) / L.scale + L.sprite.width / 2, y: (dx * s + dy * c) / L.scale + L.sprite.height / 2 };
+  return { x: ((dx * c - dy * s) / L.scale) * (L.flip || 1) + L.sprite.width / 2, y: (dx * s + dy * c) / L.scale + L.sprite.height / 2 };
 }
 function toWorld(L, lx, ly) {
-  const dx = (lx - L.sprite.width / 2) * L.scale, dy = (ly - L.sprite.height / 2) * L.scale;
+  const dx = (lx - L.sprite.width / 2) * L.scale * (L.flip || 1), dy = (ly - L.sprite.height / 2) * L.scale;
   const c = Math.cos(L.rot), s = Math.sin(L.rot);
   return { x: L.x + dx * c - dy * s, y: L.y + dx * s + dy * c };
 }
@@ -45,27 +48,110 @@ function hitLayer(p) {
   for (let i = layers.length - 1; i >= 0; i--) if (inLayer(layers[i], p)) return layers[i];
   return null;
 }
-function handles(L) {
-  const w = L.sprite.width, h = L.sprite.height;
-  return {
-    rot: toWorld(L, w - 6, 6),
-    del: toWorld(L, 6, 6),
-    back: toWorld(L, 6, h - 6),
-  };
-}
-function isAnchored(L) {
-  const i = layers.indexOf(L);
-  for (let j = i + 1; j < layers.length; j++) {
-    const T = layers[j];
-    if (T.type !== 'tape') continue;
-    const w = T.sprite.width, h = T.sprite.height;
-    for (let lx = 6; lx < w - 6; lx += 8) for (const ly of [h * 0.25, h * 0.5, h * 0.75]) {
-      if (inLayer(L, toWorld(T, lx, ly), 40)) return true;
-    }
+// Does layer U (drawn above) physically overlap layer L?
+function overlaps(U, L) {
+  const w = U.sprite.width, h = U.sprite.height, step = Math.max(6, Math.min(w, h) / 10);
+  for (let ly = step / 2; ly < h; ly += step) for (let lx = step / 2; lx < w; lx += step) {
+    if (alphaAt(U.sprite, lx, ly) < 60) continue;
+    if (inLayer(L, toWorld(U, lx, ly), 60)) return true;
   }
   return false;
 }
+// Held down by glue, or by tape / glued pieces lying over it.
+function isPinned(L) {
+  if (L.glued) return 'glue';
+  const i = layers.indexOf(L);
+  for (let j = i + 1; j < layers.length; j++) {
+    const U = layers[j];
+    if ((U.type === 'tape' || U.glued) && overlaps(U, L)) return U.type === 'tape' ? 'tape' : 'glued piece';
+  }
+  return null;
+}
+// Something (not ink) lying on top of it.
+function coveredBy(L) {
+  const i = layers.indexOf(L);
+  for (let j = layers.length - 1; j > i; j--) {
+    const U = layers[j];
+    if (U.type !== 'decal' && overlaps(U, L)) return U;
+  }
+  return null;
+}
 function inSpread(p, m = 0) { return p.x > SP.x - m && p.x < SP.x + SP.w + m && p.y > SP.y - m && p.y < SP.y + SP.h + m; }
+function bounds(L) {
+  const w = L.sprite.width, h = L.sprite.height;
+  const pts = [toWorld(L, 0, 0), toWorld(L, w, 0), toWorld(L, w, h), toWorld(L, 0, h)];
+  return { x0: Math.min(...pts.map((q) => q.x)), x1: Math.max(...pts.map((q) => q.x)), y0: Math.min(...pts.map((q) => q.y)), y1: Math.max(...pts.map((q) => q.y)) };
+}
+function rotHandle(L) { return toWorld(L, L.sprite.width - 6, 6); }
+
+/* ---------- scissors ---------- */
+
+function inPoly(pts, x, y) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const a = pts[i], b = pts[j];
+    if ((a.y > y) !== (b.y > y) && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
+  }
+  return inside;
+}
+function opaqueCount(c) {
+  const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+  let n = 0;
+  for (let i = 3; i < d.length; i += 16) if (d[i] > 140) n++;
+  return n;
+}
+function finishCut(pts) {
+  if (pts.length < 8) return;
+  const xs = pts.map((q) => q.x), ys = pts.map((q) => q.y);
+  const bx = Math.floor(Math.min(...xs)), by = Math.floor(Math.min(...ys));
+  const bw = Math.ceil(Math.max(...xs)) - bx, bh = Math.ceil(Math.max(...ys)) - by;
+  if (bw < 12 || bh < 12) return;
+  // the topmost cuttable piece most of the loop sits on
+  const votes = new Map();
+  const step = Math.max(5, Math.min(bw, bh) / 14);
+  for (let yy = by; yy < by + bh; yy += step) for (let xx = bx; xx < bx + bw; xx += step) {
+    if (!inPoly(pts, xx, yy)) continue;
+    for (let i = layers.length - 1; i >= 0; i--) {
+      const L = layers[i];
+      if (L.type === 'decal') continue;
+      if (inLayer(L, { x: xx, y: yy }, 140)) { votes.set(L, (votes.get(L) || 0) + 1); break; }
+    }
+  }
+  let target = null, best = 0;
+  for (const [L, n] of votes) if (n > best) { best = n; target = L; }
+  if (!target) { toasts.add('Draw your loop over a piece of junk', 1.8); return; }
+  if (target.glued || (target.type !== 'tape' && isPinned(target))) { toasts.add("It's stuck down, can't cut it here", 1.8); return sfx.bad(); }
+
+  // the cut-out piece, in page space
+  const piece = mk(bw, bh), px = piece.getContext('2d');
+  px.translate(-bx, -by);
+  px.beginPath(); pts.forEach((q, i) => (i ? px.lineTo(q.x, q.y) : px.moveTo(q.x, q.y))); px.closePath();
+  px.clip();
+  drawLayer(px, { ...target, blend: null });
+  const img = px.getImageData(0, 0, bw, bh), d = img.data;
+  for (let i = 3; i < d.length; i += 4) if (d[i] < 140) d[i] = 0;
+  px.putImageData(img, 0, 0);
+  if (opaqueCount(piece) < 20) { toasts.add('Nothing to cut there', 1.4); return; }
+
+  snapshot();
+  // punch the same shape out of the original
+  const rest = mk(target.sprite.width, target.sprite.height), rx = rest.getContext('2d');
+  rx.drawImage(target.sprite, 0, 0);
+  rx.globalCompositeOperation = 'destination-out';
+  rx.beginPath();
+  pts.forEach((q, i) => { const l = toLocal(target, q); i ? rx.lineTo(l.x, l.y) : rx.moveTo(l.x, l.y); });
+  rx.closePath(); rx.fill();
+  const idx = layers.indexOf(target);
+  if (opaqueCount(rest) < 25) layers.splice(idx, 1);
+  else layers[idx] = { ...target, sprite: rest };
+
+  const sprite = bake(piece, { pad: 8, blur: 5, off: 2, alpha: 0.3 });
+  const L = { type: target.type === 'tape' ? 'tape' : 'item', sprite, x: bx + bw / 2 + 10, y: by + bh / 2 + 8, rot: 0, scale: 1, flip: 1 };
+  layers.push(L);
+  sel = L;
+  sfx.rip();
+  toasts.add('snip! drag your piece wherever you like', 1.8);
+}
 
 /* ---------- undo ---------- */
 
@@ -87,24 +173,65 @@ function fit(src, w, h) {
   x.drawImage(src, (w - src.width * s) / 2, (h - src.height * s) / 2, src.width * s, src.height * s);
   return c;
 }
+function itemCell(label, sprite) { return { label, sprite, thumb: fit(sprite, 92, 70), kind: 'item' }; }
 function buildTray() {
-  const flowers = game.day.pressed.map((p) => ({ label: `${FLOWERS[p.type].name}`, thumb: fit(p.sprite, 92, 70), make: () => p.sprite, kind: 'item' }));
-  const photos = photoScraps();
-  const drawn = shuffle([...SCRAPS]).slice(0, Math.max(6, 10 - Math.min(4, photos.length)));
-  const pocket = shuffle([...drawn.map((s) => ({ label: s.label, src: s })), ...shuffle([...photos]).slice(0, 4).map((p) => ({ label: p.label, sprite: p.sprite }))]).slice(0, 10);
-  const scraps = pocket.map((s) => {
-    const sample = s.sprite || s.src.make();
-    return { label: s.label, thumb: fit(sample, 92, 70), make: s.sprite ? () => s.sprite : (() => { let first = sample; return () => { const r = first || s.src.make(); first = null; return r; }; })(), kind: 'item' };
-  });
+  const flowers = game.day.pressed.map((p) => itemCell(FLOWERS[p.type].name, p.sprite));
+  const box = (cat) => {
+    const out = [];
+    for (const j of JUNK[cat]) for (let i = 0; i < j.n; i++) out.push(itemCell(j.label, j.make()));
+    return out;
+  };
   const tape = WASHI.map((w) => ({ label: w.label, thumb: washiThumb(w), washi: w, kind: 'tape' }));
   const stamps = STAMPS.map((s) => ({ label: s.label, thumb: fit(s.make(), 92, 70), make: s.make, kind: 'stamp' }));
-  return [flowers, scraps, tape, stamps];
+  const photos = [{ label: 'add a photo', kind: 'upload', thumb: uploadThumb() }, ...photoScraps().map((p) => itemCell(p.label, p.sprite))];
+  return [flowers, [{ label: 'write a post-it', kind: 'note', thumb: noteThumb() }, ...box('Paper')], box('Ephemera'), box('Bits'), tape, stamps, photos];
 }
+function noteThumb() {
+  const c = mk(92, 70), x = c.getContext('2d');
+  x.fillStyle = '#fbe57a'; x.fillRect(22, 6, 50, 50);
+  x.fillStyle = 'rgba(0,0,0,.06)'; x.fillRect(22, 6, 50, 9);
+  x.fillStyle = '#2f2a3a'; x.font = `600 26px ${F.hand}`; x.textAlign = 'center'; x.fillText('✎', 47, 44);
+  return c;
+}
+function askNote() {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(30,20,10,.45);z-index:10';
+  wrap.innerHTML = `<div style="background:#fbe57a;padding:18px;border-radius:4px;box-shadow:0 10px 30px rgba(0,0,0,.35);width:min(320px,86vw);font-family:Caveat,cursive">
+    <textarea maxlength="60" rows="3" placeholder="write a little note…" style="width:100%;box-sizing:border-box;border:0;background:transparent;font:28px Caveat,cursive;color:#2f2a3a;resize:none;outline:none"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+      <button data-a="cancel" style="font:600 15px Fraunces,Georgia,serif;padding:8px 14px;border-radius:10px;border:1px solid rgba(58,46,40,.3);background:#fbf6ea;cursor:pointer">Cancel</button>
+      <button data-a="ok" style="font:600 15px Fraunces,Georgia,serif;padding:8px 14px;border-radius:10px;border:0;background:#7f9c5b;color:#fffdf5;cursor:pointer">Stick it</button>
+    </div></div>`;
+  document.body.appendChild(wrap);
+  const ta = wrap.querySelector('textarea');
+  setTimeout(() => ta.focus(), 30);
+  const close = (ok) => {
+    const text = ta.value.trim();
+    wrap.remove();
+    if (!ok || !text) return;
+    snapshot();
+    const L = { type: 'item', sprite: postit(text), x: SP.x + SP.w / 2 + rr(-60, 60), y: SP.y + SP.h / 2 + rr(-40, 40), rot: rr(-0.1, 0.1), scale: 1, flip: 1 };
+    layers.push(L); sel = L;
+    sfx.pop();
+  };
+  wrap.addEventListener('click', (e) => { const a = e.target.dataset && e.target.dataset.a; if (a) close(a === 'ok'); else if (e.target === wrap) close(false); });
+  ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); close(true); } if (e.key === 'Escape') close(false); e.stopPropagation(); });
+}
+function uploadThumb() {
+  const c = mk(92, 70), x = c.getContext('2d');
+  x.strokeStyle = 'rgba(58,46,40,.45)'; x.setLineDash([5, 4]); x.lineWidth = 2;
+  x.beginPath(); x.roundRect(14, 6, 64, 58, 10); x.stroke(); x.setLineDash([]);
+  x.fillStyle = 'rgba(58,46,40,.7)'; x.font = `600 34px ${F.serif}`; x.textAlign = 'center'; x.fillText('+', 46, 48);
+  return c;
+}
+function listHeight(i) { return Math.ceil(tray[i].length / 2) * (CELL.h + CELL.gap); }
+function maxScroll() { return Math.max(0, listHeight(tab) - (LIST.bottom - LIST.top)); }
 function cellRect(i) {
   const col = i % 2, row = Math.floor(i / 2);
-  return { x: TRAY.x + 8 + col * (CELL.w + CELL.gap), y: TRAY.y + CELL.top + row * (CELL.h + CELL.gap), w: CELL.w, h: CELL.h };
+  return { x: TRAY.x + 8 + col * (CELL.w + CELL.gap), y: LIST.top + row * (CELL.h + CELL.gap) - scroll[tab], w: CELL.w, h: CELL.h };
 }
 function trayCellAt(p) {
+  if (p.y < LIST.top || p.y > LIST.bottom) return -1;
   const items = tray[tab];
   for (let i = 0; i < items.length; i++) {
     const r = cellRect(i);
@@ -113,8 +240,38 @@ function trayCellAt(p) {
   return -1;
 }
 function tabAt(p) {
-  if (p.y < TRAY.y || p.y > TRAY.y + 38 || p.x < TRAY.x || p.x > TRAY.x + TRAY.w) return -1;
-  return Math.floor((p.x - TRAY.x) / (TRAY.w / TABS.length));
+  if (p.x < TRAY.x || p.x > TRAY.x + TRAY.w || p.y < TRAY.y + 4 || p.y > TRAY.y + 4 + 2 * TAB_H) return -1;
+  const i = Math.floor((p.y - TRAY.y - 4) / TAB_H) * 4 + Math.floor((p.x - TRAY.x) / TAB_W);
+  return i < TABS.length ? i : -1;
+}
+const ARROWS = { up: { x: TRAY.x + 10, y: TRAY.y + TRAY.h - 40, w: 108, h: 32 }, down: { x: TRAY.x + 128, y: TRAY.y + TRAY.h - 40, w: 108, h: 32 } };
+const inRect = (p, r) => p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h;
+
+function askPhoto() {
+  if (!fileInput) {
+    fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+    fileInput.addEventListener('change', () => {
+      const f = fileInput.files && fileInput.files[0];
+      if (!f) return;
+      const url = URL.createObjectURL(f);
+      const img = new Image();
+      img.onload = () => {
+        const cell = itemCell('my photo', toSprite(img, 240));
+        tray[6].push(cell);
+        URL.revokeObjectURL(url);
+        tab = 6; scroll[6] = maxScroll();
+        toasts.add('Photo added! Drag it onto the page');
+        sfx.shutter();
+      };
+      img.src = url;
+      fileInput.value = '';
+    });
+  }
+  fileInput.click();
 }
 
 /* ---------- pages ---------- */
@@ -129,8 +286,6 @@ function buildShadow() {
   x.fillStyle = '#000'; x.fillRect(40, 40, SP.w, SP.h);
   return c;
 }
-
-// Draws pages + every layer with the spread's top-left at (ox, oy).
 export function drawSpread(x, ox, oy, withShadow = true) {
   if (withShadow) x.drawImage(shadow, ox - 40, oy - 40);
   x.drawImage(pages[0], ox, oy);
@@ -149,10 +304,54 @@ function drawLayer(x, L) {
   x.save();
   x.translate(L.x, L.y);
   x.rotate(L.rot);
-  x.scale(L.scale, L.scale);
+  x.scale(L.scale * (L.flip || 1), L.scale);
   if (L.blend) x.globalCompositeOperation = L.blend;
   x.drawImage(L.sprite, -L.sprite.width / 2, -L.sprite.height / 2);
   x.restore();
+}
+
+/* ---------- selection toolbar ---------- */
+
+const TOOLS = [
+  { id: 'ccw', glyph: '↺', tip: 'rotate' }, { id: 'cw', glyph: '↻', tip: 'rotate' },
+  { id: 'small', glyph: '−', tip: 'smaller' }, { id: 'big', glyph: '+', tip: 'bigger' },
+  { id: 'flip', glyph: '⇆', tip: 'flip' }, { id: 'dup', glyph: '⧉', tip: 'copy' },
+  { id: 'del', glyph: '✕', tip: 'remove' },
+];
+function toolbarRect() {
+  if (!sel || !layers.includes(sel) || drag) return null;
+  const b = bounds(sel), w = TOOLS.length * 38 + 8, h = 42;
+  let x = (b.x0 + b.x1) / 2 - w / 2, y = b.y0 - h - 12;
+  if (y < SP.y - 20) y = b.y1 + 12;
+  x = clamp(x, 8, TRAY.x - w - 8); y = clamp(y, 96, 800 - h - 8);
+  return { x, y, w, h };
+}
+function toolAt(p) {
+  const r = toolbarRect();
+  if (!r || !inRect(p, r)) return null;
+  const i = Math.floor((p.x - r.x - 4) / 38);
+  return TOOLS[clamp(i, 0, TOOLS.length - 1)];
+}
+function applyTool(tl) {
+  const L = sel;
+  if (tl.id === 'del') {
+    const why = isPinned(L);
+    if (why && L.type !== 'tape') { toasts.add(why === 'glue' ? "It's glued down for good" : `It's held under the ${why}`); return sfx.bad(); }
+    snapshot(); layers.splice(layers.indexOf(L), 1); sel = null; sfx.rip(); return;
+  }
+  if (tl.id === 'dup') {
+    snapshot();
+    const c = { ...L, x: L.x + 24, y: L.y + 24, glued: false, vx: 0, vy: 0, vr: 0 };
+    layers.push(c); sel = c; sfx.pop(); return;
+  }
+  if (L.glued || (L.type !== 'tape' && isPinned(L))) { toasts.add("Can't adjust it while it's stuck down"); return sfx.bad(); }
+  snapshot();
+  if (tl.id === 'ccw') L.rot -= Math.PI / 12;
+  else if (tl.id === 'cw') L.rot += Math.PI / 12;
+  else if (tl.id === 'small') L.scale = clamp(L.scale / 1.12, 0.35, 2.4);
+  else if (tl.id === 'big') L.scale = clamp(L.scale * 1.12, 0.35, 2.4);
+  else if (tl.id === 'flip') L.flip = -(L.flip || 1);
+  sfx.click();
 }
 
 /* ---------- the cat ---------- */
@@ -166,17 +365,14 @@ function spawnCat() {
   };
   game.day.stats.visits++;
   sfx.meow();
-  if (firstCat) { toasts.add(`${CAT_NAME} is coming! Tape scraps down to keep them put`, 3.6); firstCat = false; }
+  if (firstCat) { toasts.add(`${CAT_NAME} is coming! Tape or glue scraps to keep them put`, 3.6); firstCat = false; }
 }
 function catBox() {
   if (!cat) return null;
   if (cat.state === 'loaf') return { x0: cat.x - 80, x1: cat.x + 80, y0: cat.y - 90, y1: cat.y + 6 };
   return { x0: cat.x - 95, x1: cat.x + 95, y0: cat.y - 125, y1: cat.y + 6 };
 }
-function overCat(p) {
-  const b = catBox();
-  return b && p.x > b.x0 && p.x < b.x1 && p.y > b.y0 && p.y < b.y1;
-}
+function overCat(p) { const b = catBox(); return b && p.x > b.x0 && p.x < b.x1 && p.y > b.y0 && p.y < b.y1; }
 function updateCat(dt) {
   if (!cat) {
     catTimer -= dt;
@@ -187,15 +383,13 @@ function updateCat(dt) {
   if (cat.state === 'walk') {
     const prev = cat.x;
     cat.x += cat.dir * cat.speed * dt;
-    if (cat.loafAt !== null && (prev - cat.loafAt) * (cat.x - cat.loafAt) <= 0) {
-      cat.state = 'loaf'; cat.timer = 6; cat.loafAt = null; sfx.purr();
-    }
+    if (cat.loafAt !== null && (prev - cat.loafAt) * (cat.x - cat.loafAt) <= 0) { cat.state = 'loaf'; cat.timer = 6; cat.loafAt = null; sfx.purr(); }
     let scattered = 0;
     for (const L of layers) {
-      if (L.type !== 'item' || cat.pushed.has(L)) continue;
+      if (L.type !== 'item' || cat.pushed.has(L) || L === (drag && drag.layer)) continue;
       if (Math.abs(L.x - cat.x) < 60 && L.y > cat.y - 120 && L.y < cat.y + 30) {
         cat.pushed.add(L);
-        if (isAnchored(L)) continue;
+        if (isPinned(L)) continue;
         L.vx = cat.dir * rr(160, 300); L.vy = rr(-90, 90); L.vr = rr(-2.2, 2.2);
         scattered++;
       }
@@ -205,8 +399,7 @@ function updateCat(dt) {
   } else if (cat.state === 'loaf') {
     cat.timer -= dt;
     if (cat.timer <= 0) {
-      const pp = pawPrints();
-      layers.push({ type: 'decal', sprite: pp, x: cat.x + rr(-20, 20), y: cat.y - 30, rot: rr(-0.5, 0.5), scale: 1, blend: 'multiply' });
+      layers.push({ type: 'decal', sprite: pawPrints(), x: cat.x + rr(-20, 20), y: cat.y - 30, rot: rr(-0.5, 0.5), scale: 1, blend: 'multiply' });
       game.day.stats.paws++;
       toasts.add(`${CAT_NAME} left paw prints ♥`, 2.4);
       cat.state = 'walk'; cat.speed = 150;
@@ -224,13 +417,21 @@ function catClick() {
     sfx.meow();
     toasts.add(pick(['mrrp!', 'zoom!', '*offended meow*']), 1.4);
   }
-  cat.state = 'walk';
-  cat.speed = 420;
-  cat.loafAt = null;
+  cat.state = 'walk'; cat.speed = 420; cat.loafAt = null;
 }
 
 /* ---------- scene ---------- */
 
+function setTool(tl) {
+  tool = tool && tool.id === tl.id ? null : tl;
+  syncToolButtons();
+  sel = null;
+  sfx.click();
+}
+function syncToolButtons() {
+  buttons[2].primary = !!(tool && tool.id === 'glue');
+  buttons[4].primary = !!(tool && tool.id === 'cut');
+}
 function finish() {
   sel = null; tool = null;
   sfx.shutter();
@@ -245,17 +446,20 @@ export const journal = {
     t = 0;
     if (!shadow) shadow = buildShadow();
     if (arg && arg.fresh) {
-      layers = []; undo = []; sel = null; drag = null; tool = null; tab = 0;
+      layers = []; undo = []; sel = null; drag = null; tool = null; tab = 0; glueFx = [];
       pageKind = 0; buildPages();
       tray = buildTray();
-      cat = null; catTimer = 9; firstCat = true; hintShown = false;
+      scroll = tray.map(() => 0);
+      cat = null; catTimer = 12; firstCat = true; hintShown = false;
       toasts.clear();
-      toasts.add('Drag your flowers and scraps onto the page', 3.2);
+      toasts.add('Your junk box is full, make whatever you like!', 3.2);
     } else if (!pages) buildPages();
     buttons = [
-      new Button({ x: 610, y: 30, w: 100, h: 50, label: 'Undo', size: 18, onClick: doUndo }),
-      new Button({ x: 720, y: 30, w: 170, h: 50, label: `Paper: ${PAGE_KINDS[pageKind]}`, size: 17, onClick: () => { pageKind = (pageKind + 1) % PAGE_KINDS.length; buildPages(); buttons[1].label = `Paper: ${PAGE_KINDS[pageKind]}`; sfx.click(); } }),
+      new Button({ x: 384, y: 30, w: 86, h: 50, label: 'Undo', size: 17, onClick: doUndo }),
+      new Button({ x: 478, y: 30, w: 160, h: 50, label: `Paper: ${PAGE_KINDS[pageKind]}`, size: 15, onClick: () => { pageKind = (pageKind + 1) % PAGE_KINDS.length; buildPages(); buttons[1].label = `Paper: ${PAGE_KINDS[pageKind]}`; sfx.click(); } }),
+      new Button({ x: 646, y: 30, w: 130, h: 50, label: 'Glue stick', size: 16, onClick: () => setTool({ id: 'glue' }) }),
       new Button({ x: 1018, y: 30, w: 246, h: 50, label: 'Finish & keep ✓', primary: true, size: 19, onClick: finish }),
+      new Button({ x: 784, y: 30, w: 130, h: 50, label: '✂ Scissors', size: 16, onClick: () => setTool({ id: 'cut' }) }),
     ];
   },
 
@@ -270,13 +474,26 @@ export const journal = {
     }
     updateCat(dt);
     if (cat && cat.hearts) cat.hearts = Math.max(0, cat.hearts - dt);
-    buttons[2].pulse = layers.length >= 6;
+    for (const g of glueFx) g.t += dt;
+    glueFx = glueFx.filter((g) => g.t < 0.8);
+    buttons[3].pulse = layers.length >= 6;
     toasts.update(dt);
   },
 
   draw(x) {
     x.drawImage(getDesk(), 0, 0);
     drawSpread(x, SP.x, SP.y, true);
+
+    for (const g of glueFx) {
+      x.save();
+      x.globalAlpha = 1 - g.t / 0.8;
+      x.strokeStyle = '#fffbe6'; x.lineWidth = 3;
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * TAU, r0 = 10 + g.t * 50;
+        x.beginPath(); x.moveTo(g.x + Math.cos(a) * r0, g.y + Math.sin(a) * r0); x.lineTo(g.x + Math.cos(a) * (r0 + 10), g.y + Math.sin(a) * (r0 + 10)); x.stroke();
+      }
+      x.restore();
+    }
 
     if (drag && drag.mode === 'tape') {
       const len = Math.hypot(drag.x1 - drag.x0, drag.y1 - drag.y0);
@@ -291,6 +508,18 @@ export const journal = {
       }
     }
 
+    if (drag && drag.mode === 'cut' && drag.pts.length > 1) {
+      x.save();
+      x.lineWidth = 2; x.strokeStyle = 'rgba(58,46,40,.8)'; x.setLineDash([7, 5]); x.lineDashOffset = -t * 30;
+      x.beginPath(); drag.pts.forEach((q, i) => (i ? x.lineTo(q.x, q.y) : x.moveTo(q.x, q.y)));
+      const a = drag.pts[0], b = drag.pts[drag.pts.length - 1];
+      x.stroke();
+      x.globalAlpha = 0.4; x.beginPath(); x.moveTo(b.x, b.y); x.lineTo(a.x, a.y); x.stroke();
+      x.globalAlpha = 1; x.setLineDash([]);
+      x.font = '26px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.fillText('✂', b.x + 14, b.y - 14);
+      x.restore();
+    }
     if (sel && layers.includes(sel)) drawSelection(x, sel);
 
     if (cat) {
@@ -313,36 +542,47 @@ export const journal = {
 
     x.save();
     x.fillStyle = '#fdf7ea'; x.shadowColor = 'rgba(30,15,5,.5)'; x.shadowBlur = 6;
-    x.font = `600 32px ${F.serif}`;
-    x.fillText(`Day ${game.day.n} · the journal`, 34, 58);
-    x.font = `24px ${F.hand}`;
-    const hint = tool ? (tool.kind === 'tape' ? 'drag across the page to lay tape · tap the roll again to stop' : 'tap the page to stamp · tap the stamp again to stop')
-      : 'drag to move · corner handle to spin & size · Q/E rotate';
-    x.fillText(hint, 36, 88);
+    x.font = `600 30px ${F.serif}`;
+    x.fillText(`Day ${game.day.n} · journal`, 34, 56);
+    x.font = `22px ${F.hand}`;
+    const hint = !tool ? 'drag junk onto the page · lift the top piece before the one under it'
+      : tool.id === 'glue' ? 'tap a piece to glue it down for good · tap Glue stick to stop'
+      : tool.id === 'cut' ? 'draw a loop around the part you want to cut out · tap Scissors to stop'
+      : tool.id === 'tape' ? 'drag across the page to lay tape · tap the roll again to stop'
+      : 'tap the page to stamp · tap the stamp again to stop';
+    x.fillText(hint, 36, 86);
     x.restore();
     for (const b of buttons) b.draw(x, t);
-    toasts.draw(x, 1280);
+    const ty = toasts.y; toasts.y = 772 - toasts.list.length * 56; toasts.draw(x, 1040); toasts.y = ty;
   },
 
   pointerdown(p) {
     for (const b of buttons) if (b.hit(p)) return b.onClick();
     if (cat && overCat(p)) return catClick();
+    const tl = toolAt(p);
+    if (tl) return applyTool(tl);
 
     const ti = tabAt(p);
-    if (ti >= 0) { tab = ti; if (tab < 2) tool = null; sfx.click(); return; }
-    if (p.x > TRAY.x && p.x < TRAY.x + TRAY.w && p.y > TRAY.y && p.y < TRAY.y + TRAY.h) {
+    if (ti >= 0) { tab = ti; if (tool && tool.kind) { tool = null; syncToolButtons(); } sfx.click(); return; }
+    if (inRect(p, ARROWS.up)) { scroll[tab] = clamp(scroll[tab] - 220, 0, maxScroll()); return sfx.click(); }
+    if (inRect(p, ARROWS.down)) { scroll[tab] = clamp(scroll[tab] + 220, 0, maxScroll()); return sfx.click(); }
+    if (inRect(p, TRAY)) {
       const ci = trayCellAt(p);
       if (ci < 0) return;
       const cell = tray[tab][ci];
+      if (cell.kind === 'upload') return askPhoto();
+      if (cell.kind === 'note') return askNote();
       if (cell.kind === 'item') {
         snapshot();
-        const sprite = cell.make();
-        const L = { type: 'item', sprite, x: p.x, y: p.y, rot: rr(-0.12, 0.12), scale: 1 };
+        const L = { type: 'item', sprite: cell.sprite, x: p.x, y: p.y, rot: rr(-0.12, 0.12), scale: 1, flip: 1 };
         layers.push(L); sel = L;
         drag = { mode: 'move', layer: L, ox: 0, oy: 0, fromTray: true };
         sfx.pop();
       } else {
-        tool = tool && tool.cell === cell ? null : { kind: cell.kind, cell };
+        const id = cell.kind + ':' + ci;
+        tool = tool && tool.id === id ? null : { id, kind: cell.kind, cell };
+        if (tool) tool.id = id;
+        syncToolButtons();
         sel = null;
         sfx.click();
       }
@@ -350,35 +590,56 @@ export const journal = {
     }
 
     if (sel && layers.includes(sel)) {
-      const h = handles(sel);
-      if (Math.hypot(p.x - h.rot.x, p.y - h.rot.y) < 18) {
+      const h = rotHandle(sel);
+      if (Math.hypot(p.x - h.x, p.y - h.y) < 18) {
+        if (sel.glued || (sel.type !== 'tape' && isPinned(sel))) { toasts.add("It's stuck down"); return sfx.bad(); }
         snapshot();
         const a = Math.atan2(p.y - sel.y, p.x - sel.x), d = Math.hypot(p.x - sel.x, p.y - sel.y);
         drag = { mode: 'rot', layer: sel, a0: a - sel.rot, d0: d / sel.scale };
         return;
       }
-      if (Math.hypot(p.x - h.del.x, p.y - h.del.y) < 18) { snapshot(); layers.splice(layers.indexOf(sel), 1); sel = null; sfx.rip(); return; }
-      if (Math.hypot(p.x - h.back.x, p.y - h.back.y) < 18) { snapshot(); layers.splice(layers.indexOf(sel), 1); layers.unshift(sel); sfx.click(); toasts.add('sent to the back', 1.2); return; }
     }
 
+    if (tool && tool.id === 'cut') {
+      if (!inSpread(p, 30)) return;
+      drag = { mode: 'cut', pts: [{ x: p.x, y: p.y }] };
+      sel = null;
+      return;
+    }
+    if (tool && tool.id === 'glue') {
+      const L = hitLayer(p);
+      if (!L || L.type === 'decal') return;
+      if (L.glued) { toasts.add('Already glued', 1.2); return; }
+      snapshot();
+      L.glued = true; L.vx = L.vy = L.vr = 0;
+      glueFx.push({ x: p.x, y: p.y, t: 0 });
+      sfx.thunk();
+      toasts.add('glued!', 1.0);
+      return;
+    }
     if (tool && inSpread(p, 20)) {
       if (tool.kind === 'tape') { drag = { mode: 'tape', washi: tool.cell.washi, x0: p.x, y0: p.y, x1: p.x, y1: p.y }; return; }
       snapshot();
-      const sprite = tool.cell.make();
-      layers.push({ type: 'decal', sprite, x: p.x, y: p.y, rot: rr(-0.25, 0.25), scale: 1, blend: 'multiply' });
+      layers.push({ type: 'decal', sprite: tool.cell.make(), x: p.x, y: p.y, rot: rr(-0.25, 0.25), scale: 1, blend: 'multiply' });
       sfx.thunk();
       return;
     }
 
     const L = hitLayer(p);
-    if (L) {
-      snapshot();
-      sel = L;
-      layers.splice(layers.indexOf(L), 1); layers.push(L);
-      L.vx = L.vy = L.vr = 0;
-      drag = { mode: 'move', layer: L, ox: p.x - L.x, oy: p.y - L.y };
-      sfx.pop();
-    } else sel = null;
+    if (!L) { sel = null; return; }
+    sel = L;
+    if (L.type === 'decal') return;
+    if (L.type !== 'tape') {
+      const why = isPinned(L);
+      if (why) { toasts.add(why === 'glue' ? "That one's glued down" : `It's held under the ${why}, peel that first`, 1.8); return sfx.bad(); }
+      const top = coveredBy(L);
+      if (top) { toasts.add('Something is lying on top, lift that first', 1.8); sel = top; return sfx.bad(); }
+    }
+    snapshot();
+    layers.splice(layers.indexOf(L), 1); layers.push(L);
+    L.vx = L.vy = L.vr = 0;
+    drag = { mode: 'move', layer: L, ox: p.x - L.x, oy: p.y - L.y };
+    sfx.pop();
   },
 
   pointermove(p) {
@@ -388,30 +649,32 @@ export const journal = {
       else if (drag.mode === 'rot') {
         L.rot = Math.atan2(p.y - L.y, p.x - L.x) - drag.a0;
         L.scale = clamp(Math.hypot(p.x - L.x, p.y - L.y) / drag.d0, 0.35, 2.4);
+      } else if (drag.mode === 'cut') {
+        const last = drag.pts[drag.pts.length - 1];
+        if (Math.hypot(p.x - last.x, p.y - last.y) > 4) {
+          drag.pts.push({ x: p.x, y: p.y });
+          drag.snip = (drag.snip || 0) + 1;
+          if (drag.snip % 6 === 0) sfx.click();
+        }
       } else if (drag.mode === 'tape') {
         let dx = p.x - drag.x0, dy = p.y - drag.y0;
         const len = Math.hypot(dx, dy);
         if (len > 420) { dx *= 420 / len; dy *= 420 / len; }
         drag.x1 = drag.x0 + dx; drag.y1 = drag.y0 + dy;
       }
-      game.cursor = drag.mode === 'tape' ? 'crosshair' : 'grabbing';
+      game.cursor = drag.mode === 'tape' || drag.mode === 'cut' ? 'crosshair' : 'grabbing';
       return;
     }
     let cur = 'default';
-    if (buttons.some((b) => b.hit(p))) cur = 'pointer';
-    else if (cat && overCat(p)) cur = 'pointer';
-    else if (tabAt(p) >= 0 || trayCellAt(p) >= 0 && p.x > TRAY.x) cur = 'pointer';
-    else if (tool && inSpread(p, 20)) cur = 'crosshair';
-    else if (sel && layers.includes(sel)) {
-      const h = handles(sel);
-      if ([h.rot, h.del, h.back].some((q) => Math.hypot(p.x - q.x, p.y - q.y) < 18)) cur = 'pointer';
-      else if (hitLayer(p)) cur = 'grab';
-    } else if (hitLayer(p)) cur = 'grab';
+    if (buttons.some((b) => b.hit(p)) || toolAt(p) || (cat && overCat(p)) || tabAt(p) >= 0 || inRect(p, ARROWS.up) || inRect(p, ARROWS.down) || trayCellAt(p) >= 0 && p.x > TRAY.x) cur = 'pointer';
+    else if (tool && inSpread(p, 20)) cur = tool.id === 'glue' ? 'cell' : 'crosshair';
+    else if (sel && layers.includes(sel) && Math.hypot(p.x - rotHandle(sel).x, p.y - rotHandle(sel).y) < 18) cur = 'pointer';
+    else if (hitLayer(p)) cur = 'grab';
     for (const b of buttons) b.hover = b.hit(p);
     game.cursor = cur;
   },
 
-  pointerup(p) {
+  pointerup() {
     if (!drag) return;
     if (drag.mode === 'move') {
       const L = drag.layer;
@@ -421,13 +684,15 @@ export const journal = {
         if (drag.fromTray) undo.pop(); else toasts.add('tossed', 1.1);
       } else if (drag.fromTray && !hintShown && layers.filter((l) => l.type === 'item').length >= 2) {
         hintShown = true;
-        toasts.add('Tip: pick a washi roll in Tape to stick things down', 3);
+        toasts.add(`Tip: tape or glue things down before ${CAT_NAME} visits`, 3);
       }
+    } else if (drag.mode === 'cut') {
+      finishCut(drag.pts);
     } else if (drag.mode === 'tape') {
       const len = Math.hypot(drag.x1 - drag.x0, drag.y1 - drag.y0);
       if (len > 24) {
         snapshot();
-        layers.push({ type: 'tape', sprite: makeTapeStrip(drag.washi, len), x: (drag.x0 + drag.x1) / 2, y: (drag.y0 + drag.y1) / 2, rot: Math.atan2(drag.y1 - drag.y0, drag.x1 - drag.x0), scale: 1 });
+        layers.push({ type: 'tape', sprite: makeTapeStrip(drag.washi, len), x: (drag.x0 + drag.x1) / 2, y: (drag.y0 + drag.y1) / 2, rot: Math.atan2(drag.y1 - drag.y0, drag.x1 - drag.x0), scale: 1, flip: 1 });
         sfx.rip();
       }
     }
@@ -435,19 +700,18 @@ export const journal = {
   },
 
   wheel(e, p) {
-    if (sel && layers.includes(sel)) { sel.rot += Math.sign(e.deltaY) * 0.06; e.preventDefault(); }
+    if (inRect(p, TRAY)) { scroll[tab] = clamp(scroll[tab] + e.deltaY, 0, maxScroll()); e.preventDefault(); return; }
+    if (sel && layers.includes(sel) && !sel.glued) { sel.rot += Math.sign(e.deltaY) * 0.06; e.preventDefault(); }
   },
 
   keydown(e) {
     const mod = e.metaKey || e.ctrlKey;
     if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); return doUndo(); }
-    if (e.key === 'Escape') { tool = null; sel = null; return; }
+    if (e.key === 'Escape') { tool = null; sel = null; drag = null; syncToolButtons(); return; }
     if (!sel || !layers.includes(sel)) return;
-    if (e.key === 'q' || e.key === 'Q') sel.rot -= 0.08;
-    else if (e.key === 'e' || e.key === 'E') sel.rot += 0.08;
-    else if (e.key === 'Delete' || e.key === 'Backspace') { snapshot(); layers.splice(layers.indexOf(sel), 1); sel = null; sfx.rip(); }
-    else if (e.key === '[') { snapshot(); layers.splice(layers.indexOf(sel), 1); layers.unshift(sel); }
-    else if (e.key === ']') { snapshot(); layers.splice(layers.indexOf(sel), 1); layers.push(sel); }
+    const map = { q: 'ccw', e: 'cw', '-': 'small', '=': 'big', '+': 'big', f: 'flip', d: 'dup', Delete: 'del', Backspace: 'del' };
+    const id = map[e.key] || map[e.key.toLowerCase()];
+    if (id) { e.preventDefault(); applyTool(TOOLS.find((tl) => tl.id === id)); }
   },
 };
 
@@ -456,37 +720,55 @@ function drawSelection(x, L) {
   x.save();
   x.translate(L.x, L.y); x.rotate(L.rot); x.scale(L.scale, L.scale);
   x.setLineDash([6 / L.scale, 5 / L.scale]);
-  x.strokeStyle = 'rgba(58,46,40,.6)'; x.lineWidth = 1.5 / L.scale;
+  x.strokeStyle = L.glued ? 'rgba(200,150,40,.8)' : 'rgba(58,46,40,.6)'; x.lineWidth = 1.5 / L.scale;
   x.strokeRect(-w / 2 + 4, -h / 2 + 4, w - 8, h - 8);
   x.restore();
-  const hd = handles(L);
-  const dot = (q, col, glyph) => {
+  if (drag) return;
+  if (!L.glued && L.type !== 'decal') {
+    const q = rotHandle(L);
     x.save();
     x.fillStyle = 'rgba(30,15,5,.25)'; x.beginPath(); x.arc(q.x + 1, q.y + 2, 15, 0, TAU); x.fill();
-    x.fillStyle = col; x.beginPath(); x.arc(q.x, q.y, 15, 0, TAU); x.fill();
+    x.fillStyle = '#7f9c5b'; x.beginPath(); x.arc(q.x, q.y, 15, 0, TAU); x.fill();
     x.fillStyle = '#fffdf5'; x.font = `600 17px ${F.serif}`; x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.fillText(glyph, q.x, q.y + 1);
+    x.fillText('↻', q.x, q.y + 1);
     x.restore();
-  };
-  dot(hd.rot, '#7f9c5b', '↻');
-  dot(hd.del, '#c0574b', '×');
-  dot(hd.back, '#8a7a6a', '↓');
+  }
+  const r = toolbarRect();
+  if (!r) return;
+  x.save();
+  x.fillStyle = 'rgba(30,15,5,.3)'; x.beginPath(); x.roundRect(r.x + 2, r.y + 4, r.w, r.h, 12); x.fill();
+  x.fillStyle = '#fbf6ea'; x.beginPath(); x.roundRect(r.x, r.y, r.w, r.h, 12); x.fill();
+  x.strokeStyle = 'rgba(58,46,40,.25)'; x.lineWidth = 1; x.stroke();
+  TOOLS.forEach((tl, i) => {
+    const cx = r.x + 4 + i * 38 + 19, cy = r.y + r.h / 2;
+    x.fillStyle = tl.id === 'del' ? '#c0574b' : INK;
+    x.font = `600 20px ${F.serif}, 'Apple Symbols', sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(tl.glyph, cx, cy + 1);
+  });
+  if (L.glued) {
+    x.fillStyle = 'rgba(160,110,20,.9)'; x.font = `18px ${F.hand}`; x.textAlign = 'left';
+    x.fillText('glued', r.x + r.w + 8, r.y + r.h / 2 + 5);
+  }
+  x.restore();
 }
 
 function drawTray(x) {
   x.save();
   x.fillStyle = 'rgba(30,15,5,.35)'; x.beginPath(); x.roundRect(TRAY.x + 4, TRAY.y + 8, TRAY.w, TRAY.h, 14); x.fill();
   x.fillStyle = '#efe6d3'; x.beginPath(); x.roundRect(TRAY.x, TRAY.y, TRAY.w, TRAY.h, 14); x.fill();
-  const tw = TRAY.w / TABS.length;
   TABS.forEach((name, i) => {
+    const tx = TRAY.x + (i % 4) * TAB_W, ty = TRAY.y + 4 + Math.floor(i / 4) * TAB_H;
     x.fillStyle = i === tab ? '#fbf6ea' : 'rgba(0,0,0,.06)';
-    x.beginPath(); x.roundRect(TRAY.x + i * tw + 3, TRAY.y + 4, tw - 6, 34, 9); x.fill();
-    x.fillStyle = INK; x.font = `${i === tab ? 600 : 400} 15px ${F.serif}`; x.textAlign = 'center';
-    x.fillText(name, TRAY.x + i * tw + tw / 2, TRAY.y + 26);
+    x.beginPath(); x.roundRect(tx + 3, ty + 2, TAB_W - 6, TAB_H - 4, 8); x.fill();
+    x.fillStyle = INK; x.font = `${i === tab ? 600 : 400} 13px ${F.serif}`; x.textAlign = 'center';
+    x.fillText(name, tx + TAB_W / 2, ty + 20);
   });
+  x.save();
+  x.beginPath(); x.rect(TRAY.x, LIST.top - 4, TRAY.w, LIST.bottom - LIST.top + 4); x.clip();
   const items = tray[tab];
   items.forEach((cell, i) => {
     const r = cellRect(i);
+    if (r.y + r.h < LIST.top - 4 || r.y > LIST.bottom) return;
     const active = tool && tool.cell === cell;
     x.fillStyle = active ? '#e3edd0' : '#fbf6ea';
     x.beginPath(); x.roundRect(r.x, r.y, r.w, r.h, 10); x.fill();
@@ -497,7 +779,20 @@ function drawTray(x) {
   });
   if (!items.length) {
     x.fillStyle = 'rgba(58,46,40,.7)'; x.font = `22px ${F.hand}`; x.textAlign = 'center';
-    x.fillText('nothing here yet', TRAY.x + TRAY.w / 2, TRAY.y + 120);
+    x.fillText('nothing here yet', TRAY.x + TRAY.w / 2, LIST.top + 60);
+  }
+  x.restore();
+  const ms = maxScroll();
+  for (const [key, r, glyph, on] of [['up', ARROWS.up, '▲', scroll[tab] > 0], ['down', ARROWS.down, '▼', scroll[tab] < ms]]) {
+    x.globalAlpha = on ? 1 : 0.35;
+    x.fillStyle = '#fbf6ea'; x.beginPath(); x.roundRect(r.x, r.y, r.w, r.h, 9); x.fill();
+    x.fillStyle = INK; x.font = `14px ${F.serif}`; x.textAlign = 'center'; x.fillText(glyph, r.x + r.w / 2, r.y + 21);
+    x.globalAlpha = 1;
+  }
+  if (ms > 0) {
+    const trackH = LIST.bottom - LIST.top, barH = Math.max(30, trackH * (trackH / (trackH + ms)));
+    const by = LIST.top + (trackH - barH) * (scroll[tab] / ms);
+    x.fillStyle = 'rgba(58,46,40,.25)'; x.beginPath(); x.roundRect(TRAY.x + TRAY.w - 6, by, 4, barH, 2); x.fill();
   }
   x.restore();
 }

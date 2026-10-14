@@ -100,23 +100,29 @@ Title → Garden → Press → Journal → Keepsake → (new day)
 - **Mochi** wanders in and naps on a bed. Flowers under Mochi can't be picked. If Mochi isn't shooed within ~3 s, Mochi **squashes** one.
 - Tap Mochi to shoo them away.
 
-### 3.2 Press
-- One flower at a time on blotting paper in a wooden press.
-- Tap to lower the press; a pressure needle rises and accelerates.
-- Tap again to lift. Result depends on where the needle is:
-  - below the zone → **curled**; near → **good**; in zone → **perfect**; past → **browned**.
-- Each flower has its own zone width (lavender forgiving, pansy and cosmos tight).
-- Mochi's paw sometimes reaches in; if not tapped away it **bumps** the needle up.
+### 3.2 Press (even pressure)
+- One flower at a time on blotting paper in a wooden press with **four wing nuts**.
+- **Hold** a nut to tighten it (speeds up the longer you hold, so short taps are precise). Keyboard: hold 1–4.
+- A pressure gauge shows all four nuts against the flower's green band; an **evenness** bubble level shows the spread.
+- Open the press to see the result: **perfect** (all four in the band, spread ≤ 12), **good** (near the band, spread ≤ 22), **curled** (too loose or uneven), **browned** (a corner far too tight). A line explains why.
+- Each flower has its own band width (lavender forgiving, pansy and cosmos tight).
+- Mochi's paw sometimes reaches in and loosens or bumps a nut unless tapped away.
 - First press of each type adds it to the **herbarium** (persists between visits).
 
-### 3.3 Journal
+### 3.3 Journal (a big junk box)
 - Two-page spread; paper style: dot grid, lined, grid, plain, kraft.
-- Tray tabs: **Flowers** (today's pressed flowers), **Scraps** (a random "pocket" of ~10 from the scrap pool), **Tape** (8 washi patterns), **Stamps** (8 ink stamps).
-- Drag to place; drag handle to rotate/scale; send to back; delete; undo.
-- Washi: pick a roll, drag across the page to lay a torn strip.
-- Stamps: pick, tap to stamp (ink texture varies each press).
-- **Mochi walks across the page** every ~15–20 s, knocking **untaped** scraps askew. Taped scraps stay put. If Mochi naps on the page and is left alone, Mochi leaves **paw prints**. Tap Mochi to shoo or pet.
-- Tap **Finish** when happy.
+- **Junk box tray** with 7 tabs and ~70 pieces: **Flowers** (today's presses), **Paper** (patterned papers, sheet music, map, ledger, magazine, brochure, newspaper, bujo list, post-its, lace), **Finds** (tickets, receipts, polaroids, postage, wax seals, kraft tags, tea bag, film strip, fortune, library card, envelope, sweet wrapper, blush box, leather label), **Bits** (origami cranes, wire heart, buttons, paper clips, twine, pressed leaves, stickers), **Tape** (8 washi), **Stamps** (8 inks), **Photos** (player's own uploads + Joanne's photos).
+- **Write a post-it:** type a note, it appears in handwriting on a sticky note.
+- **Selection toolbar** (like Sticky Business): rotate 15° steps, smaller/bigger, flip, duplicate, delete; plus a drag handle to spin and resize.
+- **Freehand scissors:** draw a loop over any piece (paper, flower, photo, tape) and it cuts that shape out for real: the piece becomes a new scrap and the original keeps the hole.
+- **Glue stick:** tap a piece to glue it down for good (can't be moved, Mochi can't move it).
+- **Realistic layering:** no "send to back". Picking a piece up puts it on top when you set it down; you can't lift a piece that has something lying on it, or that's held under tape or a glued piece, until you lift or peel the top one first.
+- **Photos:** upload or snap a photo (stays on the device), then trim it with the scissors.
+- **Mochi walks across the page** every ~15–20 s, knocking loose scraps askew. Taped or glued scraps stay put. If Mochi naps on the page and is left alone, Mochi leaves **paw prints**. Tap Mochi to shoo or pet.
+- Undo; tap **Finish & keep** when happy.
+
+### 3.3b Letter + wax seal (stretch)
+- Option to make a letter in an envelope instead of a spread, sealed with a timed wax-seal mini-game (melt, pour, press the stamp while the wax is the right temperature).
 
 ### 3.4 Keepsake
 - Finished spread on a desk with a caption card: day number, date, flowers pressed, perfect presses, Mochi visits, herbarium count, paw prints.
@@ -146,7 +152,7 @@ Drawn, animated Mochi (walk, sit, loaf, paw). Colours and name to be matched to 
 |---|---|
 | Load | First paint < 2 s on broadband; no build step; no external assets except Google Fonts |
 | Performance | 60 fps on a mid-range laptop and recent phones |
-| Input | Mouse, touch, keyboard (Q/E rotate, Delete, Ctrl/⌘+Z, Space to lift press) |
+| Input | Mouse, touch, keyboard (Q/E rotate, −/+ size, F flip, D duplicate, Delete, Ctrl/⌘+Z, hold 1–4 for press nuts) |
 | Audio | Synthesised SFX via Web Audio; mute toggle remembered |
 | Storage | `localStorage` for herbarium, day count, mute — game works if storage is blocked |
 | Privacy | No accounts, no analytics, no network calls besides fonts |
@@ -172,6 +178,8 @@ Drawn, animated Mochi (walk, sit, loaf, paw). Colours and name to be matched to 
 | After submitting | Optional X post tagging @twigpine with keepsake image |
 
 ## 8. Stretch goals (only if time)
+- Letter + timed wax seal ending (see 3.3b)
+- Couch co-op (deferred: judges play solo; revisit after the contest)
 - Seasons across days (new flowers by season)
 - Herbarium page showing best press of each type
 - Seasonal paper and tape unlocks
