@@ -8,11 +8,13 @@ import { JUNK, WASHI, STAMPS, washiThumb, makeTapeStrip, pawPrints, postit } fro
 import { photoScraps, toSprite } from '../photos.js';
 import { sfx } from '../sfx.js';
 import { deskProps, matchaRing } from '../props.js';
+import { memoryPolaroid, souvenirSprites } from './memory.js';
+import { drawHand } from '../hands.js';
 
 export const SP = { x: 84, y: 120, w: 860, h: 580 };
 const PW = SP.w / 2;
 const TRAY = { x: 1018, y: 104, w: 246, h: 640 };
-const TABS = ['Flowers', 'Paper', 'Finds', 'Bits', 'Tape', 'Stamps', 'Photos'];
+const TABS = ['Flowers', 'Paper', 'Finds', 'Bits', 'Tape', 'Stamps', 'Photos', 'Memory'];
 const TAB_W = TRAY.w / 4, TAB_H = 30;
 const LIST = { top: TRAY.y + 2 * TAB_H + 16, bottom: TRAY.y + TRAY.h - 46 };
 const CELL = { w: 113, h: 104, gap: 6 };
@@ -202,7 +204,14 @@ function buildTray() {
   const tape = WASHI.map((w) => ({ label: w.label, thumb: washiThumb(w), washi: w, kind: 'tape' }));
   const stamps = STAMPS.map((s) => ({ label: s.label, thumb: fit(s.make(), 92, 70), make: s.make, kind: 'stamp' }));
   const photos = [{ label: 'add a photo', kind: 'upload', thumb: uploadThumb() }, ...photoScraps().map((p) => itemCell(p.label, p.sprite))];
-  return [flowers, [{ label: 'write a post-it', kind: 'note', thumb: noteThumb() }, ...box('Paper')], box('Ephemera'), box('Bits'), tape, stamps, photos];
+  return [flowers, [{ label: 'write a post-it', kind: 'note', thumb: noteThumb() }, ...box('Paper')], box('Ephemera'), box('Bits'), tape, stamps, photos, memoryCells()];
+}
+function memoryCells() {
+  const info = game.day.info, m = info && info.memory;
+  if (!m) return [];
+  const pol = memoryPolaroid(m);
+  if (!game.day.memoryDone) return [{ label: 'step inside ✦', kind: 'memory', memory: m, thumb: fit(pol, 92, 70), sprite: pol }];
+  return [itemCell('memory', pol), ...souvenirSprites(m).map((s) => itemCell(s.label, s.sprite))];
 }
 function noteThumb() {
   const c = mk(92, 70), x = c.getContext('2d');
@@ -482,6 +491,16 @@ export const journal = {
       cat = null; catTimer = 12; firstCat = true; hintShown = false;
       toasts.clear();
       toasts.add('Your junk box is full, make whatever you like!', 3.2);
+      if (game.day.info && game.day.info.memory) {
+        tab = 7;
+        setTimeout(() => { if (game.sceneName === 'journal' && !game.day.memoryDone) toasts.add("The bag's polaroid is in the Memory tab. Tap it to step inside ✦", 4); }, 1200);
+      }
+    } else if (arg && arg.memoryDone) {
+      game.day.memoryDone = true;
+      tray[7] = memoryCells();
+      tab = 7; scroll[7] = 0;
+      toasts.clear();
+      toasts.add('Your keepsakes from the memory are in the tray', 2.6);
     } else if (!pages) buildPages();
     buttons = [
       new Button({ x: 384, y: 30, w: 86, h: 50, label: 'Undo', size: 17, onClick: doUndo }),
@@ -553,6 +572,13 @@ export const journal = {
       x.restore();
     }
     if (sel && layers.includes(sel)) drawSelection(x, sel);
+    if (drag && drag.mode === 'move') {
+      const L = drag.layer;
+      x.save(); x.translate(L.x + drag.ox * 0 + 6, L.y + 10); drawHand(x, { pose: 'pinch', s: 0.75 }); x.restore();
+    } else if (drag && drag.mode === 'cut' && drag.pts.length) {
+      const q = drag.pts[drag.pts.length - 1];
+      x.save(); x.translate(q.x + 10, q.y + 18); drawHand(x, { pose: 'point', s: 0.6 }); x.restore();
+    }
 
     if (cat) {
       x.save(); x.translate(cat.x, cat.y);
@@ -575,7 +601,7 @@ export const journal = {
     x.save();
     x.fillStyle = '#fdf7ea'; x.shadowColor = 'rgba(30,15,5,.5)'; x.shadowBlur = 6;
     x.font = `600 30px ${F.serif}`;
-    x.fillText(`Day ${game.day.n} · journal`, 34, 56);
+    x.fillText(game.day.n === 3 ? 'Day 3 · a thank-you' : `Day ${game.day.n} · journal`, 34, 56);
     x.font = `22px ${F.hand}`;
     const hint = !tool ? 'drag junk onto the page · lift the top piece before the one under it'
       : tool.id === 'glue' ? 'tap a piece to glue it down for good · tap Glue stick to stop'
@@ -605,6 +631,7 @@ export const journal = {
       const cell = tray[tab][ci];
       if (cell.kind === 'upload') return askPhoto();
       if (cell.kind === 'note') return askNote();
+      if (cell.kind === 'memory') { sfx.shutter(); return game.go('memory', { memory: cell.memory }); }
       if (cell.kind === 'item') {
         snapshot();
         const L = { type: 'item', sprite: cell.sprite, x: p.x, y: p.y, rot: rr(-0.12, 0.12), scale: 1, flip: 1 };

@@ -3,6 +3,7 @@ import { game, recordFound } from '../state.js';
 import { Button, F, INK, toasts } from '../ui.js';
 import { getDesk } from '../bg.js';
 import { drawPaw, CAT_NAME } from '../cat.js';
+import { drawHand } from '../hands.js';
 import { FLOWERS, flowerSprite, makePressed, QUALITY_LABEL } from '../flowers.js';
 import { mk, rr, pick, lerp, clamp, TAU, wood, grain } from '../textures.js';
 import { sfx } from '../sfx.js';
@@ -173,6 +174,10 @@ export const press = {
     x.restore();
 
     if (top > -600) drawTopBoard(x, sx, sy);
+    if (phase === 'tighten' && held >= 0) {
+      const n = nutPos(held);
+      x.save(); x.translate(n.x + 10, n.y + 6); x.rotate(Math.sin(t * 14) * 0.06); drawHand(x, { pose: 'pinch', s: 0.8, flip: NUTS[held][0] < 0, rot: NUTS[held][0] < 0 ? -0.4 : -0.55 }); x.restore();
+    }
     drawMeter(x);
 
     if (paw) {

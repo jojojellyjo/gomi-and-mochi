@@ -55,7 +55,7 @@ export const title = {
     btn = new Button({
       x: 760, y: 560, w: 320, h: 66, primary: true, size: 26,
       label: save.days ? `Start day ${save.days + 1}` : 'Start your first day',
-      onClick: () => { sfx.chime(); newDay(); game.go('garden'); },
+      onClick: () => { sfx.chime(); newDay(); game.go('morning'); },
     });
   },
   update(dt) { t += dt; },

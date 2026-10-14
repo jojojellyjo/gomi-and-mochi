@@ -18,7 +18,7 @@ const KEY = 'pressed.save.v1';
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
-    if (s && typeof s === 'object') return { days: s.days || 0, found: s.found || {} };
+    if (s && typeof s === 'object') return { days: s.days || 0, found: s.found || {}, seenIntro: !!s.seenIntro };
   } catch (e) { /* storage unavailable or corrupt */ }
   return { days: 0, found: {} };
 }
@@ -26,6 +26,8 @@ export const save = load();
 function write() {
   try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* ignore */ }
 }
+
+export function writeSave() { write(); }
 
 export function newDay() {
   game.day = {

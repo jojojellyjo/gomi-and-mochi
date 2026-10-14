@@ -7,7 +7,7 @@ import { mk, grain } from '../textures.js';
 import { makeTapeStrip, WASHI } from '../ephemera.js';
 import { sfx } from '../sfx.js';
 
-let card = null, buttons = [], t = 0, blob = null;
+let card = null, buttons = [], t = 0, blob = null, spreadImg = null;
 
 function compose(image) {
   const W = 1200, H = 1010, c = mk(W, H), x = c.getContext('2d');
@@ -73,6 +73,7 @@ export const keepsake = {
   enter(arg) {
     t = 0; blob = null;
     finishDay();
+    spreadImg = arg.image;
     card = compose(arg.image);
     sfx.chime();
     toasts.clear();
@@ -81,7 +82,9 @@ export const keepsake = {
       new Button({ x: bx, y: 300, w: bw, h: 58, label: 'Save keepsake', primary: true, onClick: download }),
       new Button({ x: bx, y: 372, w: bw, h: 58, label: 'Share', onClick: share }),
       new Button({ x: bx, y: 444, w: bw, h: 58, label: '← Back to journal', onClick: () => game.go('journal') }),
-      new Button({ x: bx, y: 560, w: bw, h: 58, label: `Start day ${game.day.n + 1} →`, onClick: () => { newDay(); game.go('garden'); } }),
+      game.day.n === 3
+        ? new Button({ x: bx, y: 560, w: bw, h: 58, label: 'Seal it as a letter →', primary: true, onClick: () => { sfx.click(); game.go('letter', { image: spreadImg }); } })
+        : new Button({ x: bx, y: 560, w: bw, h: 58, label: `Start day ${game.day.n + 1} →`, onClick: () => { newDay(); game.go('morning'); } }),
     ];
   },
   update(dt) { t += dt; toasts.update(dt); },

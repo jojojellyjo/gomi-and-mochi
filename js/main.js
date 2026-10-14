@@ -7,6 +7,9 @@ import { garden } from './scenes/garden.js';
 import { press } from './scenes/press.js';
 import { journal } from './scenes/journal.js';
 import { keepsake } from './scenes/keepsake.js';
+import { morning } from './scenes/morning.js';
+import { memory } from './scenes/memory.js';
+import { letter } from './scenes/letter.js';
 
 const { W, H } = game;
 const canvas = document.getElementById('game');
@@ -90,7 +93,7 @@ async function boot() {
     ]);
   } catch (e) { /* fonts optional */ }
   await loadPhotos();
-  Object.assign(game.scenes, { title, garden, press, journal, keepsake });
+  Object.assign(game.scenes, { title, morning, garden, press, journal, memory, keepsake, letter });
   game.go('title');
   requestAnimationFrame(frame);
 }

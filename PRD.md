@@ -66,6 +66,11 @@ Optional: post on X and tag **@twigpine** (not a condition of entry).
 
 ## 2. Product overview
 
+### Story: Hana's three days
+Hana has just moved into a tiny apartment in a quiet Japanese town with her cat, Mochi. The town's rubbish calendar (burnables Mon, plastics Wed, paper Fri) means junk waits days for collection, so she starts journalling with it. Every morning a paper bag of junk and an unsigned note appear at her door. Each bag holds a polaroid; stepping into it reveals a faded memory from the neighbour's life (kitchen 1979, roller rink 1983, her balcony last spring). On Day 3, Hana learns the bags come from Mrs. Sato downstairs, whose eyes are too tired for journalling, and replies with a thank-you letter sealed in wax. Day 4+ is free play.
+
+Hana's hands (with glossy pink-nude French-tip nails) appear first-person throughout: picking up the note, twisting the press nuts, holding scraps, reaching into memories, pressing the wax seal.
+
 ### One-liner
 A cosy browser game about foraging flowers, pressing them just right and junk-journalling a keepsake spread — while your cat, Mochi, tries very hard to help.
 
@@ -93,8 +98,19 @@ Modern desktop and mobile browsers (Chrome, Safari, Firefox, Edge). Landscape ca
 ## 3. Core loop — one in-game day
 
 ```
-Title → Garden → Press → Journal → Keepsake → (new day)
+Title → (Day 1 intro cards) → Morning at the door → Balcony garden → Press → Journal (+ step into the polaroid memory) → Keepsake → next day
+Day 3: … → Keepsake → Letter + wax seal → Ending → free play
 ```
+
+### 3.0 Morning
+- The genkan (entryway) with the rubbish calendar on the wall; today's collection is highlighted.
+- Tap the note on the paper bag to read the neighbour's message; tap the bag to open it.
+
+### 3.0b Memory (polaroid)
+- Tap the bag's polaroid in the journal's **Memory** tab to step inside: the photo grows to fill the screen.
+- The room starts faded and blurry; each of the 3 keepsakes you tap brings the colour back, with a handwritten line of the neighbour's story.
+- When fully developed, step out: the polaroid itself and the 3 keepsakes are now in the Memory tab for your spread.
+- (Rewind mechanic cut for simplicity.)
 
 ### 3.1 Garden
 - Three raised beds, 12 flowers from 7 types: daisy, pansy, cosmos, nasturtium (edible), lavender, fern, mint (edible).
@@ -123,8 +139,11 @@ Title → Garden → Press → Journal → Keepsake → (new day)
 - **Mochi walks across the page** every ~15–20 s, knocking loose scraps askew. Taped or glued scraps stay put. If Mochi naps on the page and is left alone, Mochi leaves **paw prints**. Tap Mochi to shoo or pet.
 - Undo; tap **Finish & keep** when happy.
 
-### 3.3b Letter + wax seal (stretch)
-- Option to make a letter in an envelope instead of a spread, sealed with a timed wax-seal mini-game (melt, pour, press the stamp while the wax is the right temperature).
+### 3.3b Letter + wax seal (Day 3 finale)
+- The Day 3 spread folds into an envelope addressed to Mrs. Sato, 1F.
+- **Pour:** hold to pour wax; let go when the pool fills the dashed ring.
+- **Stamp:** the gloss fades as the wax cools; tap to stamp while the gauge is green. Too hot = smudged, too cold = cracked, right size + right time = perfect.
+- Slip it under the door → 3 ending cards → free play.
 
 ### 3.4 Keepsake
 - Finished spread on a desk with a caption card: day number, date, flowers pressed, perfect presses, Mochi visits, herbarium count, paw prints.

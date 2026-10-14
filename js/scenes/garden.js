@@ -176,7 +176,7 @@ export const garden = {
 
     x.fillStyle = INK;
     x.font = `600 32px ${F.serif}`;
-    x.fillText(`Day ${game.day.n} · the garden`, 34, 58);
+    x.fillText(`Day ${game.day.n} · the balcony garden`, 34, 58);
     x.font = `25px ${F.hand}`;
     x.fillText(`tap flowers to pick them · tap ${CAT_NAME} to shoo`, 36, 88);
     btn.draw(x, t);
