@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Pressed</title>
+  <meta name="description" content="Forage flowers, press them just right and junk-journal a keepsake, while your cat tries to help.">
+  <meta name="theme-color" content="#2b211b">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Fraunces:ital,wght@0,400;0,600;1,600&family=Special+Elite&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; height: 100%; background: #2b211b; overflow: hidden; }
+    body { display: flex; align-items: center; justify-content: center; }
+    canvas { display: block; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+    #rotate { display: none; position: fixed; inset: 0; background: #2b211b; color: #f7f1e3; font: 600 22px Georgia, serif; align-items: center; justify-content: center; text-align: center; padding: 24px; }
+    @media (orientation: portrait) and (max-width: 700px) { #rotate { display: flex; } }
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="Pressed, a flower pressing and junk journalling game"></canvas>
+  <div id="rotate">Turn your phone sideways<br>for a bigger journal ✿</div>
+  <noscript>Pressed needs JavaScript to run.</noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
