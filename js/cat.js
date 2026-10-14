@@ -158,7 +158,7 @@ export function drawPaw(x, len) {
     }
     x.closePath();
   };
-  const armEnd = len - 24;
+  const armEnd = Math.max(-20, len - 24);
   fluff(-30, armEnd, 48, 38);
   x.lineWidth = 6; x.strokeStyle = C.line; x.stroke();
   x.fillStyle = C.body; x.fill();
@@ -170,7 +170,7 @@ export function drawPaw(x, len) {
   }
   // lighter underside fur
   x.fillStyle = 'rgba(248,220,180,.55)';
-  x.beginPath(); x.ellipse(armEnd * 0.5, 22, armEnd * 0.55, 12, 0, 0, TAU); x.fill();
+  if (armEnd > 10) { x.beginPath(); x.ellipse(armEnd * 0.5, 22, armEnd * 0.55, 12, 0, 0, TAU); x.fill(); }
   x.restore();
 
   // the paw: a round mitten with four toes at the front
