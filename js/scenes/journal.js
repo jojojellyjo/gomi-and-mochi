@@ -7,8 +7,9 @@ import { mk, rr, pick, clamp, TAU, pageTex, PAGE_KINDS, bake } from '../textures
 import { JUNK, WASHI, STAMPS, washiThumb, makeTapeStrip, pawPrints, postit } from '../ephemera.js';
 import { photoScraps, toSprite } from '../photos.js';
 import { sfx } from '../sfx.js';
+import { deskProps, matchaRing } from '../props.js';
 
-export const SP = { x: 40, y: 104, w: 960, h: 640 };
+export const SP = { x: 84, y: 120, w: 860, h: 580 };
 const PW = SP.w / 2;
 const TRAY = { x: 1018, y: 104, w: 246, h: 640 };
 const TABS = ['Flowers', 'Paper', 'Finds', 'Bits', 'Tape', 'Stamps', 'Photos'];
@@ -20,6 +21,23 @@ let layers = [], undo = [], sel = null, drag = null, tool = null, tab = 0, tray 
 let pageKind = 0, pages = null, buttons = [], t = 0, cat = null, catTimer = 0, firstCat = true;
 let shadow = null, hintShown = false, glueFx = [];
 let fileInput = null;
+const CUP_HOME = { x: 112, y: 668 };
+let cup = { ...CUP_HOME }, cupDrag = null, cupWobble = 0;
+function cupOnPage() { return cup.x > SP.x - 20 && cup.x < SP.x + SP.w + 20 && cup.y > SP.y - 20 && cup.y < SP.y + SP.h + 20; }
+function drawDesk(x, behind) {
+  const P = deskProps();
+  const put = (img, px, py, rot) => { x.save(); x.translate(px, py); x.rotate(rot); x.drawImage(img, -img.width / 2, -img.height / 2); x.restore(); };
+  if (behind) {
+    put(P.mint, 30, 300, 0.2);
+    put(P.wax, 990, 770, -0.08);
+    put(P.candle, 760, 772, 0);
+    put(P.stamp, 860, 768, 0);
+    put(P.pencil, 420, 766, -0.04);
+    put(P.scissors, 40, 570, 1.45);
+  } else {
+    put(P.cup, cup.x + (cupWobble ? Math.sin(cupWobble * 40) * 3 : 0), cup.y, 0.1);
+  }
+}
 
 /* ---------- geometry ---------- */
 
@@ -359,7 +377,7 @@ function applyTool(tl) {
 function spawnCat() {
   const dir = Math.random() < 0.5 ? 1 : -1;
   cat = {
-    dir, x: dir > 0 ? SP.x - 140 : SP.x + SP.w + 140, y: rr(SP.y + 220, SP.y + SP.h - 30),
+    dir, x: dir > 0 ? SP.x - 140 : SP.x + SP.w + 140, y: cupOnPage() && Math.random() < 0.5 ? clamp(cup.y + 40, SP.y + 200, SP.y + SP.h + 10) : rr(SP.y + 200, SP.y + SP.h - 20),
     state: 'walk', speed: 150, t: 0, timer: 0, pushed: new Set(),
     loafAt: Math.random() < 0.45 ? rr(SP.x + 220, SP.x + SP.w - 220) : null,
   };
@@ -395,6 +413,14 @@ function updateCat(dt) {
       }
     }
     if (scattered) { game.day.stats.scattered += scattered; sfx.pop(); }
+    if (!cat.knocked && cupOnPage() && Math.abs(cup.x - cat.x) < 70 && Math.abs(cup.y - (cat.y - 40)) < 120) {
+      cat.knocked = true;
+      cupWobble = 0.6;
+      const ringX = clamp(cup.x + cat.dir * rr(50, 90), SP.x + 40, SP.x + SP.w - 40), ringY = clamp(cup.y + rr(-40, 20), SP.y + 40, SP.y + SP.h - 40);
+      layers.push({ type: 'decal', sprite: matchaRing(), x: ringX, y: ringY, rot: rr(0, TAU), scale: 1, blend: 'multiply' });
+      toasts.add(`${CAT_NAME} knocked your matcha! A ring on the page…`, 2.4);
+      sfx.thunk();
+    }
     if (cat.x < SP.x - 200 || cat.x > SP.x + SP.w + 200) { cat = null; catTimer = rr(14, 22); }
   } else if (cat.state === 'loaf') {
     cat.timer -= dt;
@@ -437,7 +463,9 @@ function finish() {
   sfx.shutter();
   const M = 50, c = mk(SP.w + M * 2, SP.h + M * 2), x = c.getContext('2d');
   x.drawImage(getDesk(), SP.x - M, SP.y - M, c.width, c.height, 0, 0, c.width, c.height);
+  x.save(); x.translate(M - SP.x, M - SP.y); drawDesk(x, true); x.restore();
   drawSpread(x, M, M, true);
+  x.save(); x.translate(M - SP.x, M - SP.y); drawDesk(x, false); x.restore();
   game.go('keepsake', { image: c });
 }
 
@@ -447,6 +475,7 @@ export const journal = {
     if (!shadow) shadow = buildShadow();
     if (arg && arg.fresh) {
       layers = []; undo = []; sel = null; drag = null; tool = null; tab = 0; glueFx = [];
+      cup = { x: SP.x + 40, y: SP.y + SP.h - 50 };
       pageKind = 0; buildPages();
       tray = buildTray();
       scroll = tray.map(() => 0);
@@ -474,6 +503,7 @@ export const journal = {
     }
     updateCat(dt);
     if (cat && cat.hearts) cat.hearts = Math.max(0, cat.hearts - dt);
+    cupWobble = Math.max(0, cupWobble - dt);
     for (const g of glueFx) g.t += dt;
     glueFx = glueFx.filter((g) => g.t < 0.8);
     buttons[3].pulse = layers.length >= 6;
@@ -482,7 +512,9 @@ export const journal = {
 
   draw(x) {
     x.drawImage(getDesk(), 0, 0);
+    drawDesk(x, true);
     drawSpread(x, SP.x, SP.y, true);
+    drawDesk(x, false);
 
     for (const g of glueFx) {
       x.save();
@@ -559,6 +591,7 @@ export const journal = {
   pointerdown(p) {
     for (const b of buttons) if (b.hit(p)) return b.onClick();
     if (cat && overCat(p)) return catClick();
+    if (!tool && Math.hypot(p.x - cup.x, p.y - cup.y) < 60) { cupDrag = { ox: p.x - cup.x, oy: p.y - cup.y }; sel = null; return; }
     const tl = toolAt(p);
     if (tl) return applyTool(tl);
 
@@ -643,6 +676,7 @@ export const journal = {
   },
 
   pointermove(p) {
+    if (cupDrag) { cup.x = clamp(p.x - cupDrag.ox, 40, 990); cup.y = clamp(p.y - cupDrag.oy, 110, 770); game.cursor = 'grabbing'; return; }
     if (drag) {
       const L = drag.layer;
       if (drag.mode === 'move') { L.x = p.x - drag.ox; L.y = p.y - drag.oy; }
@@ -666,6 +700,7 @@ export const journal = {
       return;
     }
     let cur = 'default';
+    if (!tool && Math.hypot(p.x - cup.x, p.y - cup.y) < 60) { game.cursor = 'grab'; for (const b of buttons) b.hover = false; return; }
     if (buttons.some((b) => b.hit(p)) || toolAt(p) || (cat && overCat(p)) || tabAt(p) >= 0 || inRect(p, ARROWS.up) || inRect(p, ARROWS.down) || trayCellAt(p) >= 0 && p.x > TRAY.x) cur = 'pointer';
     else if (tool && inSpread(p, 20)) cur = tool.id === 'glue' ? 'cell' : 'crosshair';
     else if (sel && layers.includes(sel) && Math.hypot(p.x - rotHandle(sel).x, p.y - rotHandle(sel).y) < 18) cur = 'pointer';
@@ -675,6 +710,7 @@ export const journal = {
   },
 
   pointerup() {
+    if (cupDrag) { cupDrag = null; sfx.thunk(); if (cupOnPage()) toasts.add(`Careful, ${CAT_NAME} loves knocking that cup`, 2); return; }
     if (!drag) return;
     if (drag.mode === 'move') {
       const L = drag.layer;

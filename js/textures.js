@@ -158,6 +158,14 @@ export function pageTex(w, h, kind, side = 'left') {
     for (let yy = 20; yy < h; yy += 20) { x.beginPath(); x.moveTo(0, yy); x.lineTo(w, yy); x.stroke(); }
     for (let xx = 20; xx < w; xx += 20) { x.beginPath(); x.moveTo(xx, 0); x.lineTo(xx, h); x.stroke(); }
   }
+  // soft watercolour wash
+  for (let i = 0; i < 7; i++) {
+    const bx = rr(0, w), by = rr(0, h), br = rr(80, 220);
+    const wg = x.createRadialGradient(bx, by, 0, bx, by, br);
+    const col = pick(kraft ? ['120,80,40', '200,170,120'] : ['230,190,150', '200,215,180', '235,200,205', '210,200,230']);
+    wg.addColorStop(0, `rgba(${col},${rr(0.05, 0.11)})`); wg.addColorStop(0.7, `rgba(${col},${rr(0.02, 0.05)})`); wg.addColorStop(1, `rgba(${col},0)`);
+    x.fillStyle = wg; x.fillRect(0, 0, w, h);
+  }
   // gentle vignette toward the edges
   const g = x.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
   g.addColorStop(0, 'rgba(0,0,0,0)');

@@ -78,6 +78,8 @@ Built from Joanne's real hobbies (junk journalling, bujo, flower drying, plants,
 | JuJo: Creative Journal & Diary (iOS) | Journaling/scrapbook app: templates, stickers, drawing, photo collages | A tool with no goal. Pressed is a game: skill (pressing), stakes (the cat), progression (herbarium) |
 | Junk Journal: Scrapbook Art (Android, Novixa-Labs) | Vintage junk-journal sandbox with a "craft box" of papers, stickers, washi, ephemera | Same craft vibe, but Pressed adds foraging and pressing your *own* materials, a cat that scatters untaped scraps, and a finished keepsake in 5 minutes, all in the browser with no install |
 
+| Journal (Steam, 2014, Locked Door Puzzle) | Hand-painted narrative adventure played on a notebook page on a desk | Story game, no crafting. Useful reference for atmosphere: desk props (mug, pencil) framing the page make it feel personal |
+
 Takeaway: tabbed "craft box" trays are a familiar pattern, so ours should feel intuitive. Nobody combines the craft with game mechanics.
 
 ### Target player
