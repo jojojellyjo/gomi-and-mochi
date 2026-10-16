@@ -230,13 +230,13 @@ function drawEnding(x) {
   x.save(); x.translate(1040, 520); drawCat(x, { pose: 'loaf', t, dir: -1, s: 1 }); x.restore();
   if (phase === 'ending') {
     x.save();
-    x.fillStyle = '#fbf6e6'; x.fillRect(190, 540, 900, 120);
+    x.fillStyle = '#fbf6e6'; x.fillRect(190, 520, 900, 170);
     x.fillStyle = '#3b3550'; x.font = `32px ${F.hand}`; x.textAlign = 'center';
     const words = ENDING[endIdx].split(' ');
-    let line = '', y = 590;
+    let line = '', y = 566;
     for (const w of words) { if (x.measureText(line + w).width > 820) { x.fillText(line, 640, y); line = ''; y += 40; } line += w + ' '; }
     x.fillText(line, 640, y);
-    x.font = `600 14px ${F.serif}`; x.fillStyle = 'rgba(58,46,40,.6)'; x.fillText('tap to continue', 640, 650);
+    x.font = `600 14px ${F.serif}`; x.fillStyle = 'rgba(58,46,40,.6)'; x.fillText('tap to continue', 640, 676);
     x.restore();
   } else {
     x.save();
