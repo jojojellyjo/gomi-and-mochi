@@ -186,24 +186,64 @@ export const morning = {
   keydown(e) { if (e.key === 'Enter' || e.key === ' ') this.pointerdown({ x: -1, y: -1 }); },
 };
 
+function vignette(x, i) {
+  // little illustrations for the intro cards, drawn in a 260x260 box centred on (0,0)
+  x.save();
+  if (i === 0) {
+    x.fillStyle = '#f6e6cf'; x.beginPath(); x.roundRect(-130, -130, 260, 260, 16); x.fill();
+    x.fillStyle = '#e9dfcf'; x.fillRect(-90, -70, 180, 200);
+    x.fillStyle = '#7d6a5a'; x.beginPath(); x.moveTo(-104, -70); x.lineTo(0, -112); x.lineTo(104, -70); x.closePath(); x.fill();
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) {
+      const wx = -70 + c * 52, wy = -46 + r * 70, lit = r === 0 && c === 1;
+      x.fillStyle = lit ? '#fbe3a0' : '#b8c8d6'; x.fillRect(wx, wy, 36, 40);
+      x.fillStyle = '#9aa0a6'; x.fillRect(wx - 4, wy + 40, 44, 5);
+    }
+    x.save(); x.translate(-16, -4); drawCat(x, { pose: 'loaf', t: 1, dir: 1, s: 0.22 }); x.restore();
+    x.fillStyle = '#8a8378'; x.fillRect(-12, 96, 24, 34);
+  } else if (i === 1) {
+    x.fillStyle = '#efe6d4'; x.beginPath(); x.roundRect(-130, -130, 260, 260, 16); x.fill();
+    [['#d9786a', '燃'], ['#7fa6c9', 'プラ'], ['#c9a24f', '紙']].forEach(([col, ja], k) => {
+      const bx = -100 + k * 72;
+      x.fillStyle = col; x.beginPath(); x.roundRect(bx, -20, 56, 100, 8); x.fill();
+      x.fillStyle = 'rgba(0,0,0,.18)'; x.fillRect(bx - 4, -30, 64, 14);
+      x.fillStyle = '#fffdf5'; x.font = '600 20px sans-serif'; x.textAlign = 'center'; x.fillText(ja, bx + 28, 34);
+    });
+    x.fillStyle = '#fbf8f0'; x.fillRect(-80, -110, 160, 66);
+    x.fillStyle = '#c0574b'; x.beginPath(); x.arc(0, -110, 5, 0, TAU); x.fill();
+    x.fillStyle = INK; x.font = `22px ${F.hand}`; x.textAlign = 'center'; x.fillText('Mon · Wed · Fri', 0, -70);
+  } else {
+    x.fillStyle = '#efe6d4'; x.beginPath(); x.roundRect(-130, -130, 260, 260, 16); x.fill();
+    x.fillStyle = '#7b8b7b'; x.fillRect(-70, -120, 140, 180);
+    x.fillStyle = '#c9c2b4'; x.beginPath(); x.roundRect(46, -40, 10, 30, 4); x.fill();
+    x.fillStyle = '#9a9a96'; x.fillRect(-130, 60, 260, 70);
+    const g = x.createLinearGradient(-40, 0, 40, 0); g.addColorStop(0, '#b88a5c'); g.addColorStop(0.5, '#cfa572'); g.addColorStop(1, '#b0825a');
+    x.fillStyle = g; x.beginPath(); x.moveTo(-40, 20); x.lineTo(40, 20); x.lineTo(44, 100); x.lineTo(-44, 100); x.closePath(); x.fill();
+    x.fillStyle = '#fbf6e6'; x.save(); x.translate(0, 56); x.rotate(-0.06); x.fillRect(-28, -14, 56, 28);
+    x.fillStyle = '#3b3550'; x.font = `14px ${F.hand}`; x.textAlign = 'center'; x.fillText('for 203 ♥', 0, 5); x.restore();
+    x.fillStyle = '#9b2335'; x.beginPath(); x.arc(24, 18, 9, 0, TAU); x.fill();
+  }
+  x.restore();
+}
+
 function drawIntro(x) {
   x.fillStyle = '#2b211b'; x.fillRect(0, 0, 1280, 800);
   x.save();
-  x.translate(640, 380);
+  x.translate(640, 390);
   x.rotate(-0.01 * (introIdx % 2 ? -1 : 1));
-  x.fillStyle = 'rgba(0,0,0,.4)'; x.fillRect(-372, -212, 760, 440);
-  x.fillStyle = '#fbf6e6'; x.fillRect(-380, -220, 760, 440);
+  x.fillStyle = 'rgba(0,0,0,.4)'; x.fillRect(-412, -212, 840, 440);
+  x.fillStyle = '#fbf6e6'; x.fillRect(-420, -220, 840, 440);
   x.fillStyle = 'rgba(190,210,160,.8)'; x.fillRect(-50, -232, 100, 26);
-  x.fillStyle = '#3b3550'; x.font = `38px ${F.hand}`; x.textAlign = 'left';
+  x.save(); x.translate(250, -10); x.rotate(0.03); vignette(x, introIdx); x.restore();
+  x.fillStyle = '#3b3550'; x.font = `36px ${F.hand}`; x.textAlign = 'left';
   const words = INTRO[introIdx].split(' ');
-  let line = '', y = -130;
+  let line = '', y = -120;
   for (const w of words) {
-    if (x.measureText(line + w).width > 640) { x.fillText(line, -330, y); line = ''; y += 54; }
+    if (x.measureText(line + w).width > 420) { x.fillText(line, -370, y); line = ''; y += 50; }
     line += w + ' ';
   }
-  x.fillText(line, -330, y);
-  x.font = `600 16px ${F.serif}`; x.fillStyle = 'rgba(58,46,40,.6)'; x.textAlign = 'right';
-  x.fillText(`${introIdx + 1} / ${INTRO.length}  ·  tap to continue`, 350, 196);
+  x.fillText(line, -370, y);
+  x.font = `600 16px ${F.serif}`; x.fillStyle = 'rgba(58,46,40,.6)';
+  x.fillText(`${introIdx + 1} / ${INTRO.length}  ·  tap to continue`, -370, 190);
   x.restore();
   x.fillStyle = '#fdf7ea'; x.font = `600 28px ${F.serif}`; x.textAlign = 'center';
   x.fillText('Gomi & Mochi', 640, 110);

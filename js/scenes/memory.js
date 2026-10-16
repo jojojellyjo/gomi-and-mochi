@@ -111,6 +111,24 @@ function room(id) {
     x.fillStyle = '#a9c4d8'; x.beginPath(); x.moveTo(850, 520); x.lineTo(830, 440); x.lineTo(870, 440); x.lineTo(890, 520); x.fill();
     x.save(); x.translate(845, 420); drawFlower(x, 'pansy', 18); x.restore();
     x.save(); x.translate(872, 410); drawFlower(x, 'pansy', 15); x.restore();
+    // hanging lamp + clock + calendar + kettle on a little stove
+    x.strokeStyle = '#6a5a4a'; x.lineWidth = 2; x.beginPath(); x.moveTo(640, 0); x.lineTo(640, 330); x.stroke();
+    x.fillStyle = '#e9c46a'; x.beginPath(); x.moveTo(600, 360); x.lineTo(680, 360); x.lineTo(660, 330); x.lineTo(620, 330); x.closePath(); x.fill();
+    x.fillStyle = 'rgba(255,240,190,.25)'; x.beginPath(); x.moveTo(600, 360); x.lineTo(680, 360); x.lineTo(760, 520); x.lineTo(520, 520); x.fill();
+    x.fillStyle = '#fbf8f0'; x.beginPath(); x.arc(1080, 120, 44, 0, TAU); x.fill();
+    x.strokeStyle = '#7d5a37'; x.lineWidth = 5; x.stroke();
+    x.strokeStyle = '#3a2e28'; x.lineWidth = 3; x.beginPath(); x.moveTo(1080, 120); x.lineTo(1080, 92); x.moveTo(1080, 120); x.lineTo(1100, 130); x.stroke();
+    x.fillStyle = '#fbf8f0'; x.fillRect(1010, 200, 120, 140);
+    x.fillStyle = '#c0574b'; x.fillRect(1010, 200, 120, 30);
+    x.fillStyle = '#fffdf5'; x.font = `600 18px ${F.serif}`; x.textAlign = 'center'; x.fillText('1979', 1070, 222);
+    x.fillStyle = 'rgba(58,46,40,.5)'; for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) x.fillRect(1020 + c * 18, 244 + r * 22, 10, 8);
+    x.fillStyle = '#d9d2c2'; x.fillRect(1000, 420, 220, 100);
+    x.fillStyle = '#3a3a40'; x.beginPath(); x.ellipse(1060, 420, 36, 8, 0, 0, TAU); x.fill();
+    x.fillStyle = '#c0574b'; x.beginPath(); x.moveTo(1030, 418); x.quadraticCurveTo(1030, 370, 1060, 368); x.quadraticCurveTo(1090, 370, 1090, 418); x.fill();
+    x.strokeStyle = '#c0574b'; x.lineWidth = 6; x.beginPath(); x.moveTo(1088, 395); x.lineTo(1112, 380); x.stroke();
+    x.strokeStyle = '#3a2e28'; x.lineWidth = 3; x.beginPath(); x.arc(1060, 368, 18, Math.PI, 0); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,.6)'; x.lineWidth = 3;
+    for (let k = 0; k < 3; k++) { x.beginPath(); x.moveTo(1116 + k * 6, 372 - k * 4); x.quadraticCurveTo(1126 + k * 6, 350, 1116 + k * 6, 330 - k * 6); x.stroke(); }
     // open book on table
     x.fillStyle = '#efe6d6'; x.beginPath(); x.moveTo(470, 520); x.lineTo(600, 505); x.lineTo(600, 528); x.lineTo(470, 538); x.fill();
     x.beginPath(); x.moveTo(600, 505); x.lineTo(730, 520); x.lineTo(730, 538); x.lineTo(600, 528); x.fill();
@@ -137,6 +155,23 @@ function room(id) {
     const f = wood(1280, 280, '#c99a64');
     x.drawImage(f, 0, 520);
     x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 4; x.beginPath(); x.ellipse(500, 700, 460, 120, 0, Math.PI, TAU); x.stroke();
+    // neon sign, light spots on the floor, rental skate shelf
+    x.save();
+    x.font = `italic 600 64px ${F.serif}`; x.textAlign = 'center';
+    x.shadowColor = '#f4a9d8'; x.shadowBlur = 24; x.fillStyle = '#ffd6ec'; x.fillText('Starlight', 420, 300);
+    x.shadowColor = '#a9e0ff'; x.font = `600 26px ${F.serif}`; x.fillStyle = '#d9f2ff'; x.fillText('ROLLER  RINK', 420, 340);
+    x.restore();
+    for (let i = 0; i < 14; i++) {
+      x.fillStyle = ['rgba(246,210,122,.22)', 'rgba(244,169,184,.22)', 'rgba(169,216,200,.22)', 'rgba(201,184,242,.22)'][i % 4];
+      x.beginPath(); x.ellipse(80 + i * 85, 600 + (i % 3) * 50, 40, 12, 0, 0, TAU); x.fill();
+    }
+    x.fillStyle = '#5a4a6a'; x.fillRect(640, 380, 220, 140);
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) {
+      x.fillStyle = ['#f4a9b8', '#a9d8c8', '#f6d27a', '#c9b8f2'][(r + c) % 4];
+      const sx = 656 + c * 50, sy = 400 + r * 60;
+      x.beginPath(); x.moveTo(sx, sy + 40); x.lineTo(sx, sy); x.lineTo(sx + 18, sy); x.lineTo(sx + 20, sy + 26); x.lineTo(sx + 36, sy + 30); x.lineTo(sx + 36, sy + 40); x.fill();
+      x.fillStyle = '#eee'; x.beginPath(); x.arc(sx + 8, sy + 44, 4, 0, TAU); x.arc(sx + 28, sy + 44, 4, 0, TAU); x.fill();
+    }
     // bench
     x.fillStyle = '#7d5a37'; x.fillRect(80, 560, 360, 26); x.fillRect(100, 586, 16, 70); x.fillRect(400, 586, 16, 70);
     // skates on bench
@@ -165,6 +200,18 @@ function room(id) {
         x.save(); x.translate(px + 40 + k * 60, 424 - k * 6); drawFlower(x, ['cosmos', 'daisy', 'pansy', 'nasturtium'][k], 16); x.restore();
       }
     }
+    // furin wind chime, watering can, potted mint
+    x.strokeStyle = '#6a5a4a'; x.lineWidth = 2; x.beginPath(); x.moveTo(900, 0); x.lineTo(900, 150); x.stroke();
+    x.fillStyle = 'rgba(200,230,250,.85)'; x.beginPath(); x.arc(900, 170, 24, Math.PI, 0); x.lineTo(924, 178); x.lineTo(876, 178); x.fill();
+    x.fillStyle = '#d9607a'; x.beginPath(); x.arc(892, 162, 4, 0, TAU); x.arc(906, 158, 3, 0, TAU); x.fill();
+    x.beginPath(); x.moveTo(900, 178); x.lineTo(900, 200); x.stroke();
+    x.fillStyle = '#fbf6e6'; x.fillRect(888, 200, 24, 56);
+    x.fillStyle = '#c0574b'; x.font = '14px sans-serif'; x.textAlign = 'center'; x.fillText('風', 900, 226);
+    x.fillStyle = '#8fb3c9'; x.beginPath(); x.roundRect(210, 640, 90, 64, 10); x.fill();
+    x.strokeStyle = '#8fb3c9'; x.lineWidth = 8; x.beginPath(); x.moveTo(296, 660); x.lineTo(350, 620); x.stroke();
+    x.beginPath(); x.arc(255, 640, 26, Math.PI * 1.1, Math.PI * 1.9); x.stroke();
+    x.fillStyle = '#c4703f'; x.fillRect(820, 660, 70, 54);
+    for (let k = 0; k < 7; k++) { x.fillStyle = k % 2 ? '#6fae63' : '#8cc77d'; x.beginPath(); x.ellipse(830 + k * 8, 650 - (k % 3) * 8, 10, 16, (k - 3) * 0.3, 0, TAU); x.fill(); }
     // little stool
     x.fillStyle = '#c9a77c'; x.fillRect(940, 600, 200, 20); x.fillRect(960, 620, 14, 80); x.fillRect(1106, 620, 14, 80);
     x.fillStyle = '#d9cbb0'; x.beginPath(); x.ellipse(1040, 600, 30, 8, 0, 0, TAU); x.fill();
