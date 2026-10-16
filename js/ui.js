@@ -87,3 +87,29 @@ export function drawSpeaker(x, cx, cy, muted) {
   }
   x.restore();
 }
+
+// Hana's inner monologue: one quiet line at the bottom of the screen.
+export const thoughts = {
+  cur: null,
+  say(text, dur = 4.5) { this.cur = { text, t: 0, dur }; },
+  clear() { this.cur = null; },
+  update(dt) { if (this.cur) { this.cur.t += dt; if (this.cur.t > this.cur.dur) this.cur = null; } },
+  draw(x, W, H) {
+    const c = this.cur;
+    if (!c) return;
+    const a = Math.max(0, Math.min(1, c.t * 3, (c.dur - c.t) * 2));
+    x.save();
+    x.globalAlpha = a;
+    x.font = `italic 30px ${F.hand}`;
+    const text = `“${c.text}”`;
+    const w = Math.min(W - 80, x.measureText(text).width + 60);
+    const y = H - 70;
+    x.fillStyle = 'rgba(28,18,10,.78)';
+    x.beginPath(); x.roundRect(W / 2 - w / 2, y - 26, w, 52, 26); x.fill();
+    x.fillStyle = '#f7ead2'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(text, W / 2, y + 1);
+    x.font = `600 13px ${F.serif}`; x.fillStyle = 'rgba(247,234,210,.7)';
+    x.fillText('HANA', W / 2 - w / 2 + 34, y - 34);
+    x.restore();
+  },
+};

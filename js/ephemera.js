@@ -820,3 +820,34 @@ export function handwriting(text, ink = '#3b3550', size = 34) {
   lines.forEach((l, i) => x.fillText(l, 10, 8 + i * size * 1.15));
   return c;
 }
+
+// Wednesday's plastic bottle: a big clear sheet to cut shapes from.
+export function plasticBottle() {
+  const w = 230, h = 440, c = mk(w, h), x = c.getContext('2d');
+  const tint = pick([['rgba(170,215,235,.55)', 'rgba(120,180,210,.6)'], ['rgba(190,230,200,.55)', 'rgba(130,190,150,.6)'], ['rgba(225,215,240,.55)', 'rgba(170,150,210,.6)']]);
+  const body = () => {
+    x.beginPath();
+    x.moveTo(90, 10); x.lineTo(140, 10); x.lineTo(142, 50);
+    x.bezierCurveTo(200, 80, 210, 120, 210, 160);
+    x.lineTo(210, 400); x.quadraticCurveTo(210, 430, 180, 430);
+    x.lineTo(50, 430); x.quadraticCurveTo(20, 430, 20, 400);
+    x.lineTo(20, 160); x.bezierCurveTo(20, 120, 30, 80, 88, 50); x.closePath();
+  };
+  body();
+  const g = x.createLinearGradient(20, 0, 210, 0);
+  g.addColorStop(0, tint[1]); g.addColorStop(0.25, tint[0]); g.addColorStop(0.55, 'rgba(255,255,255,.45)'); g.addColorStop(1, tint[1]);
+  x.fillStyle = g; x.fill();
+  x.strokeStyle = 'rgba(80,120,150,.45)'; x.lineWidth = 2; x.stroke();
+  x.save(); body(); x.clip();
+  x.strokeStyle = 'rgba(255,255,255,.55)'; x.lineWidth = 3;
+  for (const y of [190, 250, 330]) { x.beginPath(); x.moveTo(20, y); x.quadraticCurveTo(115, y + 12, 210, y); x.stroke(); }
+  x.fillStyle = 'rgba(255,255,255,.6)'; x.fillRect(48, 140, 10, 270);
+  // paper label band
+  x.fillStyle = pick(['#f2c4c0', '#f6e7a1', '#cfe3d0']); x.fillRect(20, 260, 190, 60);
+  x.fillStyle = 'rgba(58,46,40,.75)'; x.font = `600 20px ${F.serif}`; x.textAlign = 'center';
+  x.fillText(pick(['green tea', 'mugicha', 'yuzu soda', 'peach water']), 115, 288);
+  x.font = `12px ${F.type}`; x.fillText('500 ml · recycle me', 115, 308);
+  x.restore();
+  x.fillStyle = pick(['#e86a6a', '#5f9fd0', '#7cbf6a']); x.beginPath(); x.roundRect(86, 0, 58, 22, 5); x.fill();
+  return bake(c, { pad: 10, blur: 6, off: 3, alpha: 0.2 });
+}

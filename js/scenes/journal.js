@@ -1,10 +1,10 @@
 import { game, save, writeSave } from '../state.js';
-import { Button, F, INK, toasts } from '../ui.js';
+import { Button, F, INK, toasts, thoughts } from '../ui.js';
 import { getDesk } from '../bg.js';
 import { drawCat, CAT_NAME } from '../cat.js';
 import { FLOWERS } from '../flowers.js';
 import { mk, rr, pick, clamp, TAU, pageTex, PAGE_KINDS, bake } from '../textures.js';
-import { JUNK, WASHI, STAMPS, washiThumb, makeTapeStrip, pawPrints, postit, handwriting } from '../ephemera.js';
+import { JUNK, WASHI, STAMPS, washiThumb, makeTapeStrip, pawPrints, postit, handwriting, plasticBottle } from '../ephemera.js';
 import { photoScraps, toSprite } from '../photos.js';
 import { sfx } from '../sfx.js';
 import { deskProps, matchaRing } from '../props.js';
@@ -16,7 +16,8 @@ const PW = SP.w / 2;
 const TRAY = { x: 1018, y: 104, w: 246, h: 640 };
 const TABS = ['Flowers', 'Paper', 'Finds', 'Bits', 'Tape', 'Stamps', 'Photos', 'Memory'];
 const TAB_W = TRAY.w / 4, TAB_H = 30;
-const LIST = { top: TRAY.y + 2 * TAB_H + 16, bottom: TRAY.y + TRAY.h - 46 };
+const GOAL_H = 104;
+const LIST = { top: TRAY.y + 2 * TAB_H + 16, bottom: TRAY.y + TRAY.h - 46 - GOAL_H };
 const CELL = { w: 113, h: 104, gap: 6 };
 
 let layers = [], undo = [], sel = null, drag = null, tool = null, tab = 0, tray = null, scroll = [];
@@ -166,11 +167,47 @@ function finishCut(pts) {
   else layers[idx] = { ...target, sprite: rest };
 
   const sprite = bake(piece, { pad: 8, blur: 5, off: 2, alpha: 0.3 });
-  const L = { type: target.type === 'tape' ? 'tape' : 'item', sprite, x: bx + bw / 2 + 10, y: by + bh / 2 + 8, rot: 0, scale: 1, flip: 1 };
+  const L = { type: target.type === 'tape' ? 'tape' : 'item', sprite, tag: target.tag, cut: true, x: bx + bw / 2 + 10, y: by + bh / 2 + 8, rot: 0, scale: 1, flip: 1 };
   layers.push(L);
   sel = L;
   sfx.rip();
   toasts.add('snip! drag your piece wherever you like', 1.8);
+}
+
+/* ---------- today's list ---------- */
+
+const has = (fn) => layers.some(fn);
+const GOALS = {
+  1: [['use a pressed flower', () => has((l) => l.tag === 'flower')], ['use something ★ from the bag', () => has((l) => l.tag === 'bag')], ['tape something down', () => has((l) => l.type === 'tape')]],
+  2: [['cut a shape from the bottle', () => has((l) => l.tag === 'bottle' && l.cut)], ['add a keepsake from the memory', () => has((l) => l.tag === 'memory')], ['write something', () => has((l) => l.tag === 'write')]],
+  3: [['cut something from the newspaper', () => has((l) => l.tag === 'news' && l.cut)], ['add a keepsake from the memory', () => has((l) => l.tag === 'memory')], ['write a thank-you to Mrs. Sato', () => has((l) => l.tag === 'write')]],
+  free: [['use a pressed flower', () => has((l) => l.tag === 'flower')], ['snip something with the scissors', () => has((l) => l.cut)], ['write something', () => has((l) => l.tag === 'write')]],
+};
+let goalDone = [];
+function goals() { return GOALS[game.day.n] || GOALS.free; }
+function checkGoals() {
+  const g = goals();
+  g.forEach(([label, fn], i) => {
+    const ok = fn();
+    if (ok && !goalDone[i]) { goalDone[i] = true; sfx.good(); if (goalDone.filter(Boolean).length === g.length) { toasts.add("Today's list: all done ✿", 2.6); sfx.chime(); } }
+    else if (!ok) goalDone[i] = false;
+  });
+}
+function drawGoals(x) {
+  const g = goals(), y0 = TRAY.y + TRAY.h - GOAL_H + 4;
+  x.save();
+  x.fillStyle = '#fbf3df'; x.beginPath(); x.roundRect(TRAY.x + 8, y0, TRAY.w - 16, GOAL_H - 12, 8); x.fill();
+  x.strokeStyle = 'rgba(200,120,140,.5)'; x.lineWidth = 2; x.beginPath(); x.moveTo(TRAY.x + 18, y0 + 22); x.lineTo(TRAY.x + 92, y0 + 22); x.stroke();
+  x.fillStyle = INK; x.font = `600 14px ${F.serif}`; x.textAlign = 'left'; x.fillText("today's list", TRAY.x + 18, y0 + 18);
+  g.forEach(([label], i) => {
+    const y = y0 + 40 + i * 21, done = goalDone[i];
+    x.strokeStyle = INK; x.lineWidth = 1.4; x.strokeRect(TRAY.x + 18, y - 11, 12, 12);
+    if (done) { x.strokeStyle = '#5d7741'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(TRAY.x + 19, y - 5); x.lineTo(TRAY.x + 24, y); x.lineTo(TRAY.x + 33, y - 14); x.stroke(); }
+    x.fillStyle = done ? 'rgba(58,46,40,.5)' : INK; x.font = `17px ${F.hand}`;
+    x.fillText(label, TRAY.x + 38, y);
+    if (done) { x.strokeStyle = 'rgba(58,46,40,.45)'; x.lineWidth = 1; x.beginPath(); x.moveTo(TRAY.x + 38, y - 5); x.lineTo(TRAY.x + 38 + x.measureText(label).width, y - 5); x.stroke(); }
+  });
+  x.restore();
 }
 
 /* ---------- undo ---------- */
@@ -193,25 +230,34 @@ function fit(src, w, h) {
   x.drawImage(src, (w - src.width * s) / 2, (h - src.height * s) / 2, src.width * s, src.height * s);
   return c;
 }
-function itemCell(label, sprite) { return { label, sprite, thumb: fit(sprite, 92, 70), kind: 'item' }; }
+function itemCell(label, sprite, tag) { return { label, sprite, tag, thumb: fit(sprite, 92, 70), kind: 'item' }; }
 function buildTray() {
-  const flowers = game.day.pressed.map((p) => itemCell(FLOWERS[p.type].name, p.sprite));
-  const box = (cat) => {
+  const flowers = game.day.pressed.map((p) => itemCell(FLOWERS[p.type].name, p.sprite, 'flower'));
+  const box = (cat, tag) => {
     const out = [];
-    for (const j of JUNK[cat]) for (let i = 0; i < j.n; i++) out.push(itemCell(j.label, j.make()));
+    for (const j of JUNK[cat]) for (let i = 0; i < j.n; i++) out.push(itemCell(j.label, j.make(), tag));
     return out;
   };
+  const find = (cat, label) => JUNK[cat].find((j) => j.label === label).make();
+  const bin = game.day.info ? game.day.info.bin : 'burnables';
+  const bag = bin === 'plastics'
+    ? [itemCell('plastic bottle', plasticBottle(), 'bottle'), itemCell('plastic bottle', plasticBottle(), 'bottle'), itemCell('sweet wrapper', find('Ephemera', 'sweet wrapper'), 'bag')]
+    : bin === 'paper'
+      ? [itemCell('newspaper', find('Paper', 'newspaper'), 'news'), itemCell('magazine', find('Paper', 'magazine'), 'news'), itemCell('brochure', find('Paper', 'brochure'), 'news')]
+      : [itemCell('café receipt', find('Ephemera', 'café receipt'), 'bag'), itemCell('tea bag', find('Ephemera', 'tea bag'), 'bag'), itemCell('fortune', find('Ephemera', 'fortune'), 'bag')];
+  bag.forEach((c) => { c.label = '★ ' + c.label; });
   const tape = WASHI.map((w) => ({ label: w.label, thumb: washiThumb(w), washi: w, kind: 'tape' }));
   const stamps = STAMPS.map((s) => ({ label: s.label, thumb: fit(s.make(), 92, 70), make: s.make, kind: 'stamp' }));
   const photos = [{ label: 'add a photo', kind: 'upload', thumb: uploadThumb() }, ...photoScraps().map((p) => itemCell(p.label, p.sprite))];
-  return [flowers, [{ label: 'write a post-it', kind: 'note', thumb: noteThumb() }, ...box('Paper')], box('Ephemera'), box('Bits'), tape, stamps, photos, memoryCells()];
+  const paper = box('Paper', 'paper').map((c) => (c.label === 'newspaper' ? { ...c, tag: 'news' } : c));
+  return [flowers, [{ label: 'write a post-it', kind: 'note', thumb: noteThumb() }, ...paper], [...bag, ...box('Ephemera', 'find')], box('Bits', 'bit'), tape, stamps, photos, memoryCells()];
 }
 function memoryCells() {
   const info = game.day.info, m = info && info.memory;
   if (!m) return [];
   const pol = memoryPolaroid(m);
   if (!game.day.memoryDone) return [{ label: 'step inside ✦', kind: 'memory', memory: m, thumb: fit(pol, 92, 70), sprite: pol }];
-  return [itemCell('memory', pol), ...souvenirSprites(m).map((s) => itemCell(s.label, s.sprite))];
+  return [itemCell('memory', pol, 'memory'), ...souvenirSprites(m).map((s) => itemCell(s.label, s.sprite, 'memory'))];
 }
 function askWrite(p) {
   const inks = ['#3b3550', '#9b2335', '#2f4f7f', '#5d7741'];
@@ -235,7 +281,7 @@ function askWrite(p) {
     if (!ok || !text) return;
     snapshot();
     const sprite = handwriting(text, ink);
-    const L = { type: 'item', sprite, x: clamp(p.x + sprite.width / 2 - 20, SP.x + 20, SP.x + SP.w - 20), y: p.y, rot: rr(-0.03, 0.03), scale: 1, flip: 1, ink: true };
+    const L = { type: 'item', sprite, tag: 'write', x: clamp(p.x + sprite.width / 2 - 20, SP.x + 20, SP.x + SP.w - 20), y: p.y, rot: rr(-0.03, 0.03), scale: 1, flip: 1, ink: true };
     layers.push(L); sel = L;
     sfx.scribble();
   };
@@ -270,7 +316,7 @@ function askNote() {
     wrap.remove();
     if (!ok || !text) return;
     snapshot();
-    const L = { type: 'item', sprite: postit(text), x: SP.x + SP.w / 2 + rr(-60, 60), y: SP.y + SP.h / 2 + rr(-40, 40), rot: rr(-0.1, 0.1), scale: 1, flip: 1 };
+    const L = { type: 'item', sprite: postit(text), tag: 'write', x: SP.x + SP.w / 2 + rr(-60, 60), y: SP.y + SP.h / 2 + rr(-40, 40), rot: rr(-0.1, 0.1), scale: 1, flip: 1 };
     layers.push(L); sel = L;
     sfx.pop();
   };
@@ -304,7 +350,7 @@ function tabAt(p) {
   const i = Math.floor((p.y - TRAY.y - 4) / TAB_H) * 4 + Math.floor((p.x - TRAY.x) / TAB_W);
   return i < TABS.length ? i : -1;
 }
-const ARROWS = { up: { x: TRAY.x + 10, y: TRAY.y + TRAY.h - 40, w: 108, h: 32 }, down: { x: TRAY.x + 128, y: TRAY.y + TRAY.h - 40, w: 108, h: 32 } };
+const ARROWS = { up: { x: TRAY.x + 10, y: TRAY.y + TRAY.h - 40 - GOAL_H, w: 108, h: 32 }, down: { x: TRAY.x + 128, y: TRAY.y + TRAY.h - 40 - GOAL_H, w: 108, h: 32 } };
 const inRect = (p, r) => p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h;
 
 function askPhoto() {
@@ -515,8 +561,10 @@ export const journal = {
   enter(arg) {
     t = 0;
     if (!shadow) shadow = buildShadow();
-    if (arg && arg.fresh) {
-      layers = []; undo = []; sel = null; drag = null; tool = null; tab = 0; glueFx = [];
+    if (arg && arg.fresh || !game.day.journalStarted) {
+      game.day.journalStarted = true;
+      if (game.day.info) setTimeout(() => { if (game.sceneName === 'journal') thoughts.say(game.day.info.thoughts.journal); }, 900);
+      layers = []; undo = []; sel = null; drag = null; tool = null; tab = 0; glueFx = []; goalDone = [];
       cup = { x: SP.x + 40, y: SP.y + SP.h - 50 };
       pageKind = 0; buildPages();
       tray = buildTray();
@@ -536,12 +584,15 @@ export const journal = {
       toasts.clear();
       toasts.add('Your keepsakes from the memory are in the tray', 2.6);
     } else if (!pages) buildPages();
+    if (tray) tray[0] = game.day.pressed.map((p) => itemCell(FLOWERS[p.type].name, p.sprite));
+    if (tray && game.day.memoryDone) tray[7] = memoryCells();
     buttons = [
       new Button({ x: 384, y: 30, w: 86, h: 50, label: 'Undo', size: 17, onClick: doUndo }),
       new Button({ x: 478, y: 30, w: 160, h: 50, label: `Paper: ${PAGE_KINDS[pageKind]}`, size: 15, onClick: () => { pageKind = (pageKind + 1) % PAGE_KINDS.length; buildPages(); buttons[1].label = `Paper: ${PAGE_KINDS[pageKind]}`; sfx.click(); } }),
       new Button({ x: 646, y: 30, w: 130, h: 50, label: '✎ Write', size: 16, onClick: () => setTool({ id: 'write' }) }),
       new Button({ x: 1018, y: 30, w: 246, h: 50, label: 'Finish & keep ✓', primary: true, size: 19, onClick: finish }),
       new Button({ x: 784, y: 30, w: 130, h: 50, label: '✂ Scissors', size: 16, onClick: () => setTool({ id: 'cut' }) }),
+      new Button({ x: 292, y: 30, w: 84, h: 50, label: '← Out', size: 16, onClick: () => { sfx.page(); game.go('morning', { back: true }); } }),
     ];
   },
 
@@ -555,6 +606,7 @@ export const journal = {
       if (Math.abs(L.vx) < 2 && Math.abs(L.vy) < 2 && Math.abs(L.vr) < 0.02) { L.vx = L.vy = L.vr = 0; }
     }
     updateCat(dt);
+    checkGoals();
     if (cat && cat.hearts) cat.hearts = Math.max(0, cat.hearts - dt);
     cupWobble = Math.max(0, cupWobble - dt);
     for (const g of glueFx) g.t += dt;
@@ -634,7 +686,7 @@ export const journal = {
 
     x.save();
     x.fillStyle = '#fdf7ea'; x.shadowColor = 'rgba(30,15,5,.5)'; x.shadowBlur = 6;
-    x.font = `600 30px ${F.serif}`;
+    x.font = `600 26px ${F.serif}`;
     x.fillText(game.day.n === 3 ? 'Day 3 · a thank-you' : `Day ${game.day.n} · journal`, 34, 56);
     x.font = `22px ${F.hand}`;
     const hint = !tool ? 'drag junk onto the page · lift the top piece before the one under it'
@@ -668,7 +720,7 @@ export const journal = {
       if (cell.kind === 'memory') { sfx.paper(); return game.go('memory', { memory: cell.memory }); }
       if (cell.kind === 'item') {
         snapshot();
-        const L = { type: 'item', sprite: cell.sprite, x: p.x, y: p.y, rot: rr(-0.12, 0.12), scale: 1, flip: 1 };
+        const L = { type: 'item', sprite: cell.sprite, tag: cell.tag, x: p.x, y: p.y, rot: rr(-0.12, 0.12), scale: 1, flip: 1 };
         layers.push(L); sel = L;
         drag = { mode: 'move', layer: L, ox: 0, oy: 0, fromTray: true };
         sfx.pop();
@@ -890,6 +942,7 @@ function drawTray(x) {
     x.fillStyle = INK; x.font = `14px ${F.serif}`; x.textAlign = 'center'; x.fillText(glyph, r.x + r.w / 2, r.y + 21);
     x.globalAlpha = 1;
   }
+  drawGoals(x);
   if (ms > 0) {
     const trackH = LIST.bottom - LIST.top, barH = Math.max(30, trackH * (trackH / (trackH + ms)));
     const by = LIST.top + (trackH - barH) * (scroll[tab] / ms);

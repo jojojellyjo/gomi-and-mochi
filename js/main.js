@@ -1,5 +1,5 @@
 import { game } from './state.js';
-import { F, drawSpeaker } from './ui.js';
+import { F, drawSpeaker, thoughts } from './ui.js';
 import { sfx, isMuted, setMuted } from './sfx.js';
 import { loadPhotos } from './photos.js';
 import { title } from './scenes/title.js';
@@ -30,7 +30,7 @@ function drawMood(x) {
   if (!mood) mood = buildMood();
   x.save();
   x.globalCompositeOperation = 'multiply';
-  x.fillStyle = 'rgba(255,226,190,1)'; x.fillRect(0, 0, W, H);
+  x.fillStyle = 'rgba(255,236,212,1)'; x.fillRect(0, 0, W, H);
   x.globalCompositeOperation = 'source-over';
   x.drawImage(mood, 0, 0);
   x.globalCompositeOperation = 'soft-light';
@@ -99,6 +99,8 @@ function frame(now) {
     game.scene.update(dt);
     game.scene.draw(ctx);
     if (game.sceneName !== 'memory') drawMood(ctx);
+    thoughts.update(dt);
+    thoughts.draw(ctx, W, H);
   }
   drawSpeaker(ctx, MUTE.x, MUTE.y, isMuted());
   requestAnimationFrame(frame);

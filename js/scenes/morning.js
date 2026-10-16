@@ -1,13 +1,13 @@
 // Morning at Hana's door: the garbage calendar, a paper bag of junk and a note.
 import { game, save, writeSave } from '../state.js';
-import { Button, F, INK, toasts } from '../ui.js';
+import { Button, F, INK, toasts, thoughts } from '../ui.js';
 import { mk, rr, TAU, grain, wood, bake } from '../textures.js';
 import { drawHand } from '../hands.js';
 import { drawCat, CAT_NAME } from '../cat.js';
 import { INTRO, dayInfo, HANA } from '../story.js';
 import { sfx } from '../sfx.js';
 
-let t = 0, phase = 'intro', introIdx = 0, info, btn, bg = null, bagOpen = 0, noteOpen = 0, hand = null;
+let t = 0, phase = 'intro', introIdx = 0, info, btn, bg = null, bagOpen = 0, noteOpen = 0, hand = null, hub = [], hearts = 0;
 
 function buildBg() {
   const c = mk(1280, 800), x = c.getContext('2d');
@@ -38,14 +38,38 @@ function buildBg() {
   // shoe cabinet
   x.fillStyle = '#c9a77c'; x.fillRect(60, 300, 300, 260);
   x.strokeStyle = 'rgba(80,50,20,.3)'; x.strokeRect(70, 310, 135, 240); x.strokeRect(215, 310, 135, 240);
-  x.fillStyle = '#7f9c5b';
-  x.beginPath(); x.ellipse(150, 280, 40, 26, 0, Math.PI, 0); x.fill();
-  x.fillStyle = '#c4703f'; x.fillRect(120, 272, 60, 30);
+  // a trailing pothos in a little glazed pot
+  const vine = (x0, y0, len, dir) => {
+    x.strokeStyle = '#5f7f45'; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(x0, y0);
+    for (let k = 1; k <= len; k++) x.lineTo(x0 + Math.sin(k * 0.6) * 6 * dir + dir * k * 2, y0 + k * 12);
+    x.stroke();
+    for (let k = 1; k <= len; k += 1) {
+      const lx = x0 + Math.sin(k * 0.6) * 6 * dir + dir * k * 2, ly = y0 + k * 12;
+      x.save(); x.translate(lx, ly); x.rotate(dir * 0.8 + Math.sin(k) * 0.4);
+      x.fillStyle = k % 2 ? '#6f9a52' : '#86b062';
+      x.beginPath(); x.moveTo(0, 0); x.bezierCurveTo(9, -4, 10, -14, 0, -18); x.bezierCurveTo(-10, -14, -9, -4, 0, 0); x.fill();
+      x.strokeStyle = 'rgba(230,240,200,.5)'; x.lineWidth = 1; x.beginPath(); x.moveTo(0, -2); x.lineTo(0, -15); x.stroke();
+      x.restore();
+    }
+  };
+  for (let k = 0; k < 9; k++) {
+    x.save(); x.translate(150 + (k - 4) * 9, 262); x.rotate((k - 4) * 0.28);
+    x.fillStyle = k % 2 ? '#6f9a52' : '#86b062';
+    x.beginPath(); x.moveTo(0, 0); x.bezierCurveTo(13, -8, 14, -26, 0, -32); x.bezierCurveTo(-14, -26, -13, -8, 0, 0); x.fill();
+    x.strokeStyle = 'rgba(230,240,200,.5)'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(0, -3); x.lineTo(0, -28); x.stroke();
+    x.restore();
+  }
+  vine(126, 290, 9, -1); vine(176, 290, 7, 1); vine(150, 296, 5, 1);
+  const pg = x.createLinearGradient(118, 0, 182, 0); pg.addColorStop(0, '#d9d2c4'); pg.addColorStop(0.5, '#f2ece0'); pg.addColorStop(1, '#cfc7b8');
+  x.fillStyle = pg; x.beginPath(); x.moveTo(116, 262); x.lineTo(184, 262); x.lineTo(176, 302); x.lineTo(124, 302); x.closePath(); x.fill();
+  x.fillStyle = '#7fa6c9'; x.fillRect(119, 276, 62, 6);
+  x.fillStyle = 'rgba(0,0,0,.08)'; x.fillRect(116, 262, 68, 4);
   return grain(c, 8);
 }
 
 function calendar(x) {
-  const X = 880, Y = 90, W = 300, H = 330;
+  const X = 880, Y = 90, W = 300, H = 346;
   x.save();
   x.translate(X, Y); x.rotate(0.02);
   x.fillStyle = 'rgba(30,15,5,.2)'; x.fillRect(4, 6, W, H);
@@ -65,6 +89,8 @@ function calendar(x) {
     x.font = `20px ${F.hand}`; x.fillText(en, 84, y + 41);
     if (today) { x.textAlign = 'right'; x.font = `22px ${F.hand}`; x.fillText('today!', W - 26, y + 31); }
   });
+  x.textAlign = 'left'; x.fillStyle = 'rgba(58,46,40,.75)'; x.font = `17px ${F.hand}`;
+  x.fillText('burnables = food scraps, tissues, paper bits', 18, H - 8);
   x.restore();
 }
 
@@ -107,14 +133,23 @@ function noteCard(x, k) {
 }
 
 export const morning = {
-  enter() {
-    t = 0; bagOpen = 0; noteOpen = 0; hand = null;
+  enter(arg) {
+    t = 0; hand = null; hearts = 0;
     if (!bg) bg = buildBg();
     info = dayInfo(game.day.n);
     game.day.info = info;
-    phase = game.day.n === 1 && !save.seenIntro ? 'intro' : 'door';
     introIdx = 0;
-    btn = new Button({ x: 990, y: 700, w: 260, h: 60, label: 'To the balcony →', primary: true, visible: false, onClick: () => { sfx.click(); game.go('garden'); } });
+    if (arg && arg.back) {
+      phase = 'hub'; bagOpen = 1; noteOpen = 0;
+      buildHub();
+      toasts.clear();
+      return;
+    }
+    bagOpen = 0; noteOpen = 0;
+    phase = game.day.n === 1 && !save.seenIntro ? 'intro' : 'door';
+    if (phase === 'door') setTimeout(() => { if (game.sceneName === 'morning' && phase === 'door') thoughts.say(info.thoughts.wake); }, 600);
+    btn = new Button({ x: 0, y: 0, w: 1, h: 1, label: '', visible: false, onClick: () => {} });
+    hub = [];
     toasts.clear();
     if (phase === 'door') toasts.add('Tap the note, then the bag', 2.6);
   },
@@ -124,6 +159,7 @@ export const morning = {
     else noteOpen = Math.max(0, noteOpen - dt * 3);
     if (phase === 'bag') bagOpen = Math.min(1, bagOpen + dt * 2);
     if (hand) { hand.t += dt; if (hand.t > 0.6) hand = null; }
+    if (hearts) hearts = Math.max(0, hearts - dt);
     toasts.update(dt);
   },
   draw(x) {
@@ -154,7 +190,12 @@ export const morning = {
     x.font = `25px ${F.hand}`;
     x.fillText(phase === 'bag' ? 'the bag is full of treasures… and one old polaroid' : phase === 'note' ? 'tap anywhere to put the note down' : 'a paper bag is waiting outside the door', 36, 88);
     x.restore();
-    btn.draw(x, t);
+    if (hearts) {
+      x.save(); x.fillStyle = '#e06c84'; x.font = `34px ${F.hand}`;
+      for (let i = 0; i < 3; i++) { x.globalAlpha = hearts / 1.4; x.fillText('♥', 1090 + i * 20, 470 - (1.4 - hearts) * 70 - i * 10); }
+      x.restore();
+    }
+    if (phase === 'hub') drawHub(x);
     toasts.draw(x, 1280);
   },
   pointerdown(p) {
@@ -164,27 +205,80 @@ export const morning = {
       if (introIdx >= INTRO.length) { phase = 'door'; save.seenIntro = true; writeSave(); toasts.add('Tap the note, then the bag', 2.6); }
       return;
     }
-    if (btn.hit(p)) return btn.onClick();
+    if (phase === 'hub') {
+      for (const b of hub) if (b.hit(p)) return b.onClick();
+      if (Math.abs(p.x - 1110) < 60 && p.y > 470 && p.y < 610) return petCat();
+      return;
+    }
     if (phase === 'note') { phase = 'door2'; return; }
     const onNote = Math.abs(p.x - 600) < 70 && Math.abs(p.y - 610) < 45;
     const onBag = Math.abs(p.x - 600) < 110 && p.y > 480 && p.y < 720;
-    if (onNote && phase !== 'bag') { phase = 'note'; hand = { x: 600, y: 610, t: 0 }; sfx.paper(); return; }
+    if (onNote && phase !== 'bag') { phase = 'note'; hand = { x: 600, y: 610, t: 0 }; sfx.paper(); thoughts.say(info.thoughts.note); return; }
     if (onBag) {
       if (phase === 'door') { toasts.add('Read the note first?', 1.6); }
-      phase = 'bag'; btn.visible = true; hand = { x: 600, y: 540, t: 0 }; sfx.bag();
-      toasts.add(info.memory ? 'There\'s a polaroid inside. Look for it in your journal' : 'More junk for the journal!', 3);
+      phase = 'bag'; hand = { x: 600, y: 540, t: 0 }; sfx.bag();
+      thoughts.say(info.thoughts.bag);
+      setTimeout(() => { if (game.sceneName === 'morning' && phase === 'bag') { phase = 'hub'; buildHub(); } }, 1100);
       return;
     }
-    if (Math.abs(p.x - 1110) < 50 && p.y > 470 && p.y < 610) { sfx.meow(); toasts.add(`${CAT_NAME} wants breakfast`, 1.4); }
+    if (Math.abs(p.x - 1110) < 50 && p.y > 470 && p.y < 610) petCat();
   },
   pointermove(p) {
-    btn.hover = btn.hit(p);
+    if (phase === 'hub') {
+      let h = false; for (const b of hub) { b.hover = b.hit(p); h = h || b.hover; }
+      game.cursor = h || (Math.abs(p.x - 1110) < 60 && p.y > 470 && p.y < 610) ? 'pointer' : 'default';
+      return;
+    }
     const onNote = Math.abs(p.x - 600) < 70 && Math.abs(p.y - 610) < 45;
     const onBag = Math.abs(p.x - 600) < 110 && p.y > 480 && p.y < 720;
-    game.cursor = phase === 'intro' || btn.hover || onNote || onBag || phase === 'note' ? 'pointer' : 'default';
+    game.cursor = phase === 'intro' || onNote || onBag || phase === 'note' ? 'pointer' : 'default';
   },
-  keydown(e) { if (e.key === 'Enter' || e.key === ' ') this.pointerdown({ x: -1, y: -1 }); },
+  keydown(e) { if (phase !== 'hub' && (e.key === 'Enter' || e.key === ' ')) this.pointerdown({ x: -1, y: -1 }); },
 };
+
+function petCat() {
+  hearts = 1.4; sfx.purr(); game.day.stats.pets++;
+  const lines = [`${CAT_NAME} purrs like a little engine.`, `Okay, okay, breakfast first.`, `You're the only one who knew Obaachan too, huh.`];
+  thoughts.say(lines[Math.min(game.day.stats.pets - 1, lines.length - 1)] || lines[0], 3.5);
+}
+
+function buildHub() {
+  const d = game.day;
+  const W = 330, H = 92, gx = 640 - W - 10, gy = 300;
+  const mk2 = (i, label, sub, enabled, onClick, primary) => {
+    const b = new Button({ x: gx + (i % 2) * (W + 20), y: gy + Math.floor(i / 2) * (H + 20), w: W, h: H, label, size: 22, primary, enabled, onClick });
+    b.sub = sub;
+    return b;
+  };
+  hub = [
+    mk2(0, '✦  Look at the polaroid', info.memory ? (d.memoryDone ? 'a memory, collected' : 'step inside an old photo') : 'no polaroid today', !!info.memory && !d.memoryDone,
+      () => { sfx.paper(); game.go('memory', { memory: info.memory, from: 'hub' }); }),
+    mk2(1, '✿  Balcony garden', d.pressed.length ? 'flowers pressed ✓' : 'pick & press 3 flowers', !d.pressed.length,
+      () => { sfx.click(); game.go('garden'); }),
+    mk2(2, '♥  Pet Mochi', 'Mochi is waiting', true, () => petCat()),
+    mk2(3, '✎  Junk journal', d.journalStarted ? 'keep going' : 'make something from it all', true,
+      () => { sfx.page(); game.go('journal', d.journalStarted ? {} : { fresh: true }); }, true),
+  ];
+}
+
+function drawHub(x) {
+  x.save();
+  x.fillStyle = 'rgba(28,18,10,.45)'; x.fillRect(0, 0, 1280, 800);
+  x.fillStyle = 'rgba(251,246,234,.96)'; x.beginPath(); x.roundRect(250, 200, 780, 360, 18); x.fill();
+  x.fillStyle = INK; x.textAlign = 'center';
+  x.font = `600 30px ${F.serif}`; x.fillText(`${info.weekday} · what first?`, 640, 252);
+  x.font = `22px ${F.hand}`; x.fillStyle = 'rgba(58,46,40,.75)';
+  x.fillText(`today's bin: ${info.bin} (${info.binJa})`, 640, 282);
+  x.restore();
+  for (const b of hub) {
+    b.draw(x, t);
+    x.save();
+    x.globalAlpha = b.enabled ? 0.75 : 0.4;
+    x.fillStyle = b.primary ? '#fffdf5' : INK; x.font = `18px ${F.hand}`; x.textAlign = 'center';
+    x.fillText(b.sub, b.x + b.w / 2, b.y + b.h - 14);
+    x.restore();
+  }
+}
 
 function vignette(x, i) {
   // little illustrations for the intro cards, drawn in a 260x260 box centred on (0,0)

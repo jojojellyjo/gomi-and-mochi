@@ -1,6 +1,6 @@
 // Stepping into a polaroid: a faded room from the neighbour's past.
 // Each keepsake you find brings the colour back; three and the photo is fully developed.
-import { game } from '../state.js';
+import { game, save, writeSave } from '../state.js';
 import { Button, F, INK, toasts } from '../ui.js';
 import { mk, rr, pick, TAU, grain, bake, wood, lerp } from '../textures.js';
 import { drawFlower, makePressed } from '../flowers.js';
@@ -248,7 +248,7 @@ const MEMORIES = {
 
 /* ---------- scene ---------- */
 
-let t = 0, mem, id, R = null, low = null, found = [], dev = 0, devTarget = 0, lore = null, enterK = 0, hand = null, outBtn, flying = [];
+let from = 'journal', t = 0, mem, id, R = null, low = null, found = [], dev = 0, devTarget = 0, lore = null, enterK = 0, hand = null, outBtn, flying = [];
 
 export function memoryPolaroid(memId) {
   const src = room(memId);
@@ -267,11 +267,16 @@ export function souvenirSprites(memId) {
 
 export const memory = {
   enter(arg) {
-    id = arg.memory; mem = MEMORIES[id];
+    id = arg.memory; mem = MEMORIES[id]; from = arg.from || 'journal';
     t = 0; found = []; dev = 0; devTarget = 0; lore = null; enterK = 0; hand = null; flying = [];
     R = room(id);
     low = mk(160, 100); low.getContext('2d').drawImage(R, 0, 0, 160, 100);
-    outBtn = new Button({ x: 1010, y: 26, w: 240, h: 56, label: 'Step out ↩', primary: true, visible: false, onClick: () => { sfx.click(); game.go('journal', { memoryDone: id }); } });
+    outBtn = new Button({ x: 1010, y: 26, w: 240, h: 56, label: 'Step out ↩', primary: true, visible: false, onClick: () => {
+      sfx.paper();
+      game.day.memoryDone = true;
+      if (!save.memories.includes(id)) { save.memories.push(id); writeSave(); }
+      if (from === 'hub') game.go('morning', { back: true }); else game.go('journal', { memoryDone: id });
+    } });
     toasts.clear();
     toasts.add('Find three keepsakes hidden in the memory', 3);
     sfx.paper();

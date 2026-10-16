@@ -1,5 +1,5 @@
 import { game } from '../state.js';
-import { Button, F, INK, toasts } from '../ui.js';
+import { Button, F, INK, toasts, thoughts } from '../ui.js';
 import { drawCat, CAT_NAME } from '../cat.js';
 import { FLOWERS, FLOWER_TYPES, flowerSprite } from '../flowers.js';
 import { mk, rr, pick, shuffle, lerp, TAU, grain, tint } from '../textures.js';
@@ -149,6 +149,7 @@ export const garden = {
     btn = new Button({ x: 1010, y: 26, w: 240, h: 56, label: 'To the press →', primary: true, enabled: false, onClick: () => { sfx.click(); game.go('press'); } });
     toasts.clear();
     toasts.add(`Pick up to ${MAX} flowers for the press`, 3.4);
+    if (game.day.info) setTimeout(() => { if (game.sceneName === 'garden') thoughts.say(game.day.info.thoughts.garden); }, 1500);
   },
 
   update(dt) {
