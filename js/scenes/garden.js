@@ -37,29 +37,49 @@ function buildBg() {
   const sun = x.createRadialGradient(1090, 140, 10, 1090, 140, 220);
   sun.addColorStop(0, 'rgba(255,244,200,.95)'); sun.addColorStop(0.25, 'rgba(255,236,180,.5)'); sun.addColorStop(1, 'rgba(255,236,180,0)');
   x.fillStyle = sun; x.fillRect(0, 0, 1280, 500);
-  x.fillStyle = '#cddcb2';
-  x.beginPath(); x.moveTo(0, 420);
-  for (let px = 0; px <= 1280; px += 20) x.lineTo(px, 400 + Math.sin(px / 170) * 26 + Math.sin(px / 60) * 6);
-  x.lineTo(1280, 800); x.lineTo(0, 800); x.fill();
-  x.fillStyle = '#a3bc88';
-  for (let px = -30; px < 1320; px += 56) { x.beginPath(); x.arc(px, 470 + Math.sin(px) * 6, 44, Math.PI, 0); x.fill(); }
-  x.fillRect(0, 468, 1280, 30);
-  // picket fence
-  for (let px = 10; px < 1280; px += 40) {
-    x.fillStyle = '#f3ebdc';
-    x.beginPath(); x.moveTo(px, 520); x.lineTo(px, 448); x.lineTo(px + 11, 438); x.lineTo(px + 22, 448); x.lineTo(px + 22, 520); x.fill();
-    x.fillStyle = 'rgba(120,100,70,.15)'; x.fillRect(px + 17, 448, 5, 72);
+  // distant hills and a small Japanese town
+  x.fillStyle = '#c9d6b6';
+  x.beginPath(); x.moveTo(0, 300);
+  for (let px = 0; px <= 1280; px += 20) x.lineTo(px, 270 + Math.sin(px / 210) * 30 + Math.sin(px / 70) * 6);
+  x.lineTo(1280, 500); x.lineTo(0, 500); x.fill();
+  let hx = -20;
+  while (hx < 1300) {
+    const w = rr(70, 130), h = rr(40, 110), base = 400;
+    x.fillStyle = pick(['#e9dfcf', '#ddd3c2', '#efe6d8', '#d7d0c4']);
+    x.fillRect(hx, base - h, w, h + 80);
+    x.fillStyle = pick(['#6f7f8f', '#7d6a5a', '#5f6f6a', '#8a5a4a']);
+    x.beginPath(); x.moveTo(hx - 8, base - h); x.lineTo(hx + w / 2, base - h - rr(16, 28)); x.lineTo(hx + w + 8, base - h); x.closePath(); x.fill();
+    x.fillStyle = 'rgba(120,140,160,.35)';
+    for (let wy = base - h + 14; wy < base + 40; wy += 22) for (let wx = hx + 10; wx < hx + w - 14; wx += 22) x.fillRect(wx, wy, 10, 12);
+    hx += w + rr(4, 18);
   }
-  x.fillStyle = '#ede3d0'; x.fillRect(0, 470, 1280, 9); x.fillRect(0, 500, 1280, 9);
-  const g = x.createLinearGradient(0, 510, 0, 800);
-  g.addColorStop(0, '#b9cf8e'); g.addColorStop(1, '#93ad6b');
-  x.fillStyle = g; x.fillRect(0, 512, 1280, 300);
-  for (let i = 0; i < 1400; i++) {
-    const px = rr(0, 1280), py = rr(515, 800);
-    x.strokeStyle = `rgba(${Math.random() < 0.5 ? '80,110,50' : '210,230,170'},${rr(0.2, 0.5)})`;
-    x.lineWidth = 1.2;
-    x.beginPath(); x.moveTo(px, py); x.lineTo(px + rr(-3, 3), py - rr(4, 10)); x.stroke();
+  // utility pole + wires
+  x.fillStyle = '#8a8378'; x.fillRect(930, 120, 10, 330);
+  x.fillRect(900, 150, 70, 6); x.fillRect(908, 180, 54, 5);
+  x.strokeStyle = 'rgba(60,55,50,.55)'; x.lineWidth = 1.5;
+  for (const [y0, sag] of [[152, 40], [158, 50], [182, 46]]) {
+    x.beginPath(); x.moveTo(-20, y0 + 30); x.quadraticCurveTo(460, y0 + sag + 40, 935, y0); x.quadraticCurveTo(1110, y0 + sag * 0.6, 1300, y0 + 18); x.stroke();
   }
+  // balcony railing
+  x.fillStyle = 'rgba(70,75,82,.9)';
+  x.fillRect(0, 432, 1280, 8);
+  x.fillRect(0, 506, 1280, 6);
+  for (let px = 8; px < 1280; px += 24) x.fillRect(px, 438, 4, 72);
+  x.fillStyle = 'rgba(255,255,255,.25)'; x.fillRect(0, 432, 1280, 2);
+  // balcony slab edge + tiled floor
+  x.fillStyle = '#cfc9bd'; x.fillRect(0, 510, 1280, 14);
+  const g = x.createLinearGradient(0, 524, 0, 800);
+  g.addColorStop(0, '#c2bcae'); g.addColorStop(1, '#a9a395');
+  x.fillStyle = g; x.fillRect(0, 524, 1280, 280);
+  x.strokeStyle = 'rgba(80,72,60,.18)'; x.lineWidth = 2;
+  for (let py = 560; py < 800; py += 60) { x.beginPath(); x.moveTo(0, py); x.lineTo(1280, py); x.stroke(); }
+  for (let px = 0; px < 1280; px += 90) { x.beginPath(); x.moveTo(px, 524); x.lineTo(px - 40, 800); x.stroke(); }
+  // a little laundry pole with a towel, very balcony
+  x.fillStyle = '#9aa0a6'; x.fillRect(40, 300, 6, 210); x.fillRect(1230, 300, 6, 210);
+  x.fillRect(40, 300, 1196, 4);
+  x.fillStyle = '#f2c4c0'; x.beginPath(); x.moveTo(1040, 304); x.lineTo(1120, 304); x.lineTo(1116, 380); x.lineTo(1044, 376); x.fill();
+  x.fillStyle = 'rgba(255,255,255,.5)'; x.fillRect(1044, 354, 72, 4);
+  x.fillStyle = '#cfe0ef'; x.beginPath(); x.moveTo(160, 304); x.lineTo(214, 304); x.lineTo(212, 352); x.lineTo(162, 350); x.fill();
   for (const b of BEDS) {
     x.fillStyle = '#6b4a33';
     x.beginPath(); x.roundRect(b.x - 6, BED_Y - 10, b.w + 12, 24, 10); x.fill();
