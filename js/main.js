@@ -16,13 +16,18 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 let scale = 1, dpr = 1;
 
-// warm, lamp-lit evening mood laid over every scene
+// warm, lamp-lit evening mood laid over every scene: one pre-rendered multiply pass
 let mood = null;
 function buildMood() {
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d');
+  // warm tint, a touch brighter where the lamp falls, darker toward the edges
+  x.fillStyle = 'rgb(255,236,212)'; x.fillRect(0, 0, W, H);
+  const lamp = x.createRadialGradient(W * 0.42, H * 0.38, 0, W * 0.42, H * 0.38, 560);
+  lamp.addColorStop(0, 'rgba(255,248,236,.9)'); lamp.addColorStop(1, 'rgba(255,248,236,0)');
+  x.fillStyle = lamp; x.fillRect(0, 0, W, H);
   const v = x.createRadialGradient(W * 0.45, H * 0.42, 220, W * 0.5, H * 0.5, 860);
-  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(0.55, 'rgba(25,12,4,.14)'); v.addColorStop(1, 'rgba(18,8,2,.62)');
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(0.55, 'rgba(60,35,15,.16)'); v.addColorStop(1, 'rgba(40,20,6,.66)');
   x.fillStyle = v; x.fillRect(0, 0, W, H);
   return c;
 }
@@ -30,13 +35,7 @@ function drawMood(x) {
   if (!mood) mood = buildMood();
   x.save();
   x.globalCompositeOperation = 'multiply';
-  x.fillStyle = 'rgba(255,236,212,1)'; x.fillRect(0, 0, W, H);
-  x.globalCompositeOperation = 'source-over';
   x.drawImage(mood, 0, 0);
-  x.globalCompositeOperation = 'soft-light';
-  const g = x.createRadialGradient(W * 0.42, H * 0.38, 0, W * 0.42, H * 0.38, 520);
-  g.addColorStop(0, 'rgba(255,200,120,.35)'); g.addColorStop(1, 'rgba(255,200,120,0)');
-  x.fillStyle = g; x.fillRect(0, 0, W, H);
   x.restore();
 }
 

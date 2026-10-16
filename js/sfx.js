@@ -50,8 +50,42 @@ function noise(dur, { vol = 0.2, freq = 2000, type = 'bandpass', q = 1, delay = 
   src.start(t);
 }
 
+// A quiet generative music-box loop: soft pentatonic notes with slow fades.
+let ambient = null;
+function ambientNote(freq, when, dur, vol) {
+  const a = audio(); if (!a) return;
+  const o = a.createOscillator(), g = a.createGain(), f = a.createBiquadFilter();
+  o.type = 'triangle'; o.frequency.value = freq;
+  f.type = 'lowpass'; f.frequency.value = 1400;
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(vol, when + 0.04);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  o.connect(f).connect(g).connect(a.destination);
+  o.start(when); o.stop(when + dur + 0.1);
+}
+function startAmbient() {
+  if (ambient) return;
+  const scale = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25];
+  const chords = [[0, 2, 4], [1, 3, 5], [4, 5, 7], [0, 3, 5]];
+  let bar = 0;
+  ambient = setInterval(() => {
+    if (muted || document.hidden) return;
+    const a = audio(); if (!a) return;
+    const now = a.currentTime + 0.05;
+    const ch = chords[bar % chords.length];
+    ambientNote(scale[ch[0]] / 2, now, 3.6, 0.018);
+    for (let i = 0; i < 4; i++) {
+      if (Math.random() < 0.7) {
+        const n = scale[ch[Math.floor(Math.random() * 3)] + (Math.random() < 0.4 ? 1 : 0)] || scale[ch[0]];
+        ambientNote(n, now + i * 0.75 + Math.random() * 0.1, 1.8, 0.014);
+      }
+    }
+    bar++;
+  }, 3000);
+}
+
 export const sfx = {
-  unlock() { audio(); },
+  unlock() { audio(); startAmbient(); },
   pluck() { tone(660, 0.14, { type: 'triangle', vol: 0.14, to: 990 }); noise(0.05, { vol: 0.08, freq: 3000 }); },
   pop() { tone(380, 0.08, { vol: 0.16, to: 600 }); },
   rip() { noise(0.22, { vol: 0.22, freq: 2600, type: 'highpass' }); noise(0.12, { vol: 0.1, freq: 5000, delay: 0.08 }); },
