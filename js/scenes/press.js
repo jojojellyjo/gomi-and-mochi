@@ -111,7 +111,7 @@ export const press = {
     top = lerp(top, phase === 'tighten' ? 0 : -620, 1 - Math.pow(0.0004, dt));
     shake = Math.max(0, shake - dt);
     if (phase === 'tighten') {
-      if (held >= 0 && (!twist || twist.still > 0.25)) {
+      if (held >= 0 && (!twist || twist.still > 0.12)) {
         holdT += dt;
         const rate = 40 + Math.min(holdT, 1.2) * 55;
         nuts[held] = clamp(nuts[held] + (loosen ? -rate : rate) * dt, 0, MAXV);
