@@ -37,7 +37,7 @@ function makeBoards() {
 function startFlower() {
   const type = queue[idx];
   const [a, b] = FLOWERS[type].zone;
-  zw = clamp((b - a) * 1.25, 18, 36);
+  zw = clamp((b - a) * 1.4, 22, 40);
   zc = zt = 60; ztimer = 1.2;
   p = 0; v = 0; holding = false; prog = 0; tHigh = 0; tLow = 0; tAll = 0; lastIn = false;
   fresh = flowerSprite(type, 95);
