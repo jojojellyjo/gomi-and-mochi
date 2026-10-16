@@ -95,6 +95,9 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+  // reset drawing state so one scene's text alignment etc. never leaks into the next frame
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over'; ctx.setLineDash([]); ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
   if (game.scene) {
     game.scene.update(dt);
     game.scene.draw(ctx);

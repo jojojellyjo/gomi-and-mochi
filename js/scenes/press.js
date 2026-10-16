@@ -37,7 +37,7 @@ function makeBoards() {
 function startFlower() {
   const type = queue[idx];
   const [a, b] = FLOWERS[type].zone;
-  zw = clamp((b - a) * 1.4, 22, 40);
+  zw = clamp((b - a) * 1.8, 28, 46);
   zc = zt = 60; ztimer = 1.2;
   p = 0; v = 0; holding = false; prog = 0; tHigh = 0; tLow = 0; tAll = 0; lastIn = false;
   fresh = flowerSprite(type, 95);
@@ -49,9 +49,9 @@ function finish() {
   const type = queue[idx];
   const off = tHigh + tLow;
   let q;
-  if (prog >= 1 && off < 1.6) q = 'perfect';
-  else if (prog >= 1 && off < 4) q = 'good';
-  else if (prog >= 0.7 && off < 5) q = 'good';
+  if (prog >= 1 && off < 2.5) q = 'perfect';
+  else if (prog >= 1) q = 'good';
+  else if (prog >= 0.6) q = 'good';
   else q = tHigh > tLow ? 'browned' : 'curled';
   const sprite = makePressed(type, q);
   game.day.pressed.push({ type, quality: q, sprite });
@@ -82,6 +82,7 @@ function pawTip() {
 }
 
 export const press = {
+  _dbg() { return { p, zc, zw, prog, phase }; },
   enter() {
     if (!boards) boards = makeBoards();
     queue = game.day.picked.slice();
@@ -99,17 +100,18 @@ export const press = {
     shake = Math.max(0, shake - dt);
     if (phase === 'pressing') {
       tAll += dt;
-      v += (holding ? 260 : -200) * dt;
-      v = clamp(v, -130, 150);
+      v += (holding ? 125 : -125) * dt;
+      v *= 1 - Math.min(0.9, 2.4 * dt);
+      v = clamp(v, -60, 60);
       p += v * dt;
       if (p <= 0) { p = 0; v = Math.max(0, v); }
       if (p >= MAXV) { p = MAXV; v = Math.min(0, v); }
       ztimer -= dt;
       if (ztimer <= 0) { zt = rr(18 + zw / 2, MAXV - 14 - zw / 2); ztimer = rr(0.9, 2.2); }
-      zc += clamp(zt - zc, -38 * dt, 38 * dt);
+      zc += clamp(zt - zc, -24 * dt, 24 * dt);
       const lo = zc - zw / 2, hi = zc + zw / 2, inside = p >= lo && p <= hi;
       if (inside) prog = Math.min(1, prog + dt / NEED);
-      else { prog = Math.max(0, prog - dt / (NEED * 2.2)); if (p > hi) tHigh += dt; else tLow += dt; }
+      else { prog = Math.max(0, prog - dt / (NEED * 3.5)); if (p > hi) tHigh += dt; else tLow += dt; }
       if (inside !== lastIn && tAll > 0.6) { inside ? sfx.pop() : sfx.click(); }
       lastIn = inside;
       creakT -= dt;
@@ -119,7 +121,7 @@ export const press = {
         paw.k = Math.min(1, paw.k + dt / 1.0);
         if (paw.k >= 1 && !paw.hit) {
           paw.hit = true; paw.retreat = true;
-          v += 140; shake = 0.35;
+          v += 70; shake = 0.35;
           game.day.stats.jolts++;
           toasts.add(`${CAT_NAME} leaned on the press!`, 1.8);
           sfx.thunk();
@@ -249,8 +251,8 @@ export const press = {
 function drawMeter(x) {
   const yOf = (val) => MY + MH - (val / MAXV) * MH;
   x.save();
-  x.fillStyle = 'rgba(30,15,5,.35)'; x.beginPath(); x.roundRect(MX - 22 + 4, MY - 46 + 6, 200, MH + 96, 16); x.fill();
-  x.fillStyle = '#fbf6ea'; x.beginPath(); x.roundRect(MX - 22, MY - 46, 200, MH + 96, 16); x.fill();
+  x.fillStyle = 'rgba(30,15,5,.35)'; x.beginPath(); x.roundRect(MX - 22 + 4, MY - 46 + 6, 232, MH + 96, 16); x.fill();
+  x.fillStyle = '#fbf6ea'; x.beginPath(); x.roundRect(MX - 22, MY - 46, 232, MH + 96, 16); x.fill();
   x.fillStyle = INK; x.font = `600 16px ${F.serif}`; x.fillText('pressure', MX - 4, MY - 18);
   x.fillStyle = '#e4dccd'; x.fillRect(MX, MY, MW, MH);
   x.fillStyle = 'rgba(176,122,74,.35)'; x.fillRect(MX, MY, MW, yOf(zc + zw / 2) - MY);
@@ -269,7 +271,7 @@ function drawMeter(x) {
   for (let i = 0; i < 6; i++) { x.save(); x.rotate((i / 6) * TAU); x.beginPath(); x.ellipse(0, -8, 4, 7, 0, 0, TAU); x.fill(); x.restore(); }
   x.fillStyle = '#e8a92a'; x.beginPath(); x.arc(0, 0, 4, 0, TAU); x.fill();
   x.restore();
-  const px = MX + MW + 70, ph = MH - 40, py = MY + 20;
+  const px = MX + MW + 106, ph = MH - 40, py = MY + 20;
   x.fillStyle = '#e4dccd'; x.beginPath(); x.roundRect(px, py, 22, ph, 11); x.fill();
   x.fillStyle = prog > 0.66 ? '#7f9c5b' : prog > 0.33 ? '#c9b25a' : '#d9867d';
   if (prog > 0.01) { x.beginPath(); x.roundRect(px, py + ph * (1 - prog), 22, ph * prog, 11); x.fill(); }

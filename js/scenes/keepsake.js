@@ -39,7 +39,7 @@ function compose(image) {
   x.font = `29px ${F.hand}`;
   x.fillText(`${pressed} flower${pressed === 1 ? '' : 's'} pressed · ${st.perfect} perfect`, -190, -32);
   x.fillText(`${CAT_NAME} visited ${st.visits}× · ${st.paws ? st.paws + ' paw print' + (st.paws > 1 ? 's' : '') : 'no paw prints'} · ${st.pets} pet${st.pets === 1 ? '' : 's'}`, -190, 4);
-  x.fillText(`herbarium ${Object.keys(save.found).length} / ${FLOWER_TYPES.length}`, -190, 40);
+  x.fillText(`flowers collected ${Object.keys(save.found).length} / ${FLOWER_TYPES.length} · memories ${(save.memories || []).length} / 3`, -190, 40);
   x.font = `italic 600 22px ${F.serif}`; x.fillStyle = 'rgba(58,46,40,.6)';
   x.textAlign = 'right'; x.fillText('Gomi & Mochi ✿', 300, 66);
   x.restore();

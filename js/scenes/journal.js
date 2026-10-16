@@ -550,7 +550,6 @@ function finish() {
   sel = null; tool = null;
   sfx.shutter();
   const M = 50, c = mk(SP.w + M * 2, SP.h + M * 2), x = c.getContext('2d');
-  x.drawImage(getDesk(), SP.x - M, SP.y - M, c.width, c.height, 0, 0, c.width, c.height);
   x.save(); x.translate(M - SP.x, M - SP.y); drawDesk(x, true); x.restore();
   drawSpread(x, M, M, true);
   x.save(); x.translate(M - SP.x, M - SP.y); drawDesk(x, false); x.restore();
@@ -584,7 +583,7 @@ export const journal = {
       toasts.clear();
       toasts.add('Your keepsakes from the memory are in the tray', 2.6);
     } else if (!pages) buildPages();
-    if (tray) tray[0] = game.day.pressed.map((p) => itemCell(FLOWERS[p.type].name, p.sprite));
+    if (tray) tray[0] = game.day.pressed.map((p) => itemCell(FLOWERS[p.type].name, p.sprite, 'flower'));
     if (tray && game.day.memoryDone) tray[7] = memoryCells();
     buttons = [
       new Button({ x: 384, y: 30, w: 86, h: 50, label: 'Undo', size: 17, onClick: doUndo }),
@@ -692,12 +691,12 @@ export const journal = {
     const hint = !tool ? 'drag junk onto the page · lift the top piece before the one under it'
       : tool.id === 'write' ? 'tap the page where you want to write · tap Write to stop'
       : tool.id === 'cut' ? 'draw a loop around the part you want to cut out · tap Scissors to stop'
-      : tool.id === 'tape' ? 'drag across the page to lay tape · tap the roll again to stop'
+      : tool.kind === 'tape' ? 'drag across the page to lay tape · tap the roll again to stop'
       : 'tap the page to stamp · tap the stamp again to stop';
     x.fillText(hint, 36, 86);
     x.restore();
     for (const b of buttons) b.draw(x, t);
-    const ty = toasts.y; toasts.y = 772 - toasts.list.length * 56; toasts.draw(x, 1040); toasts.y = ty;
+    const ty = toasts.y; toasts.y = SP.y + 34; toasts.draw(x, SP.x * 2 + SP.w); toasts.y = ty;
   },
 
   pointerdown(p) {

@@ -325,9 +325,13 @@ export const memory = {
     for (const it of mem.items) {
       if (found.includes(it.id)) continue;
       const k = (Math.sin(t * 2.5 + it.x) + 1) / 2;
-      x.save(); x.globalAlpha = 0.35 + 0.5 * k; x.fillStyle = '#fffbe6';
-      x.translate(it.x + it.w / 2 - 6, it.y - it.h / 2);
-      x.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU, r = i % 2 ? 3 : 10; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.fill();
+      x.save();
+      const gl = x.createRadialGradient(it.x, it.y, 0, it.x, it.y, Math.max(it.w, it.h) * 0.9);
+      gl.addColorStop(0, `rgba(255,245,200,${0.25 + 0.25 * k})`); gl.addColorStop(1, 'rgba(255,245,200,0)');
+      x.fillStyle = gl; x.fillRect(it.x - it.w * 1.2, it.y - it.h * 1.6, it.w * 2.4, it.h * 3.2);
+      x.globalAlpha = 0.5 + 0.5 * k; x.fillStyle = '#fffbe6';
+      x.translate(it.x + it.w / 2 - 4, it.y - it.h / 2 - 4); x.rotate(t * 0.8);
+      x.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU, r = i % 2 ? 4 : 16; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.fill();
       x.restore();
     }
     x.restore();

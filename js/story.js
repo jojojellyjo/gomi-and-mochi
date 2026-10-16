@@ -3,7 +3,7 @@ export const HANA = 'Hana';
 export const NEIGHBOUR = 'Mrs. Sato';
 
 export const INTRO = [
-  'After Obaachan passed away, Hana moved to a quiet town in Japan. She brought one suitcase, her cat Mochi, and a box of things she couldn\'t throw away.',
+  'After Obaachan (her grandma) passed away, Hana moved to a quiet town in Japan. She brought one suitcase, her cat Mochi, and a box of things she couldn\'t throw away.',
   'Here, rubbish waits for its day: burnables (food scraps, tissues, paper bits) on Monday, plastics on Wednesday, paper on Friday. Until then, it stays with you.',
   'Obaachan always said some things are too pretty to throw away. Then, one morning, a paper bag appeared outside Hana\'s door…',
 ];

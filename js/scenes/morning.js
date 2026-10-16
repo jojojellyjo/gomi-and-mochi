@@ -188,7 +188,7 @@ export const morning = {
     x.fillStyle = INK; x.font = `600 32px ${F.serif}`; x.textAlign = 'left';
     x.fillText(`Day ${game.day.n} · ${info.weekday} morning`, 34, 58);
     x.font = `25px ${F.hand}`;
-    x.fillText(phase === 'bag' ? 'the bag is full of treasures… and one old polaroid' : phase === 'note' ? 'tap anywhere to put the note down' : 'a paper bag is waiting outside the door', 36, 88);
+    x.fillText(phase === 'hub' ? 'the bag is open · what would you like to do?' : phase === 'bag' ? 'the bag is full of treasures… and one old polaroid' : phase === 'note' ? 'tap anywhere to put the note down' : 'a paper bag is waiting outside the door', 36, 88);
     x.restore();
     if (hearts) {
       x.save(); x.fillStyle = '#e06c84'; x.font = `34px ${F.hand}`;
@@ -202,7 +202,7 @@ export const morning = {
     if (phase === 'intro') {
       sfx.click();
       introIdx++;
-      if (introIdx >= INTRO.length) { phase = 'door'; save.seenIntro = true; writeSave(); toasts.add('Tap the note, then the bag', 2.6); }
+      if (introIdx >= INTRO.length) { phase = 'door'; save.seenIntro = true; writeSave(); thoughts.say(info.thoughts.wake); toasts.add('Tap the note, then the bag', 2.6); }
       return;
     }
     if (phase === 'hub') {
