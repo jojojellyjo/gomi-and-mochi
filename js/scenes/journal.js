@@ -1,10 +1,10 @@
-import { game } from '../state.js';
+import { game, save, writeSave } from '../state.js';
 import { Button, F, INK, toasts } from '../ui.js';
 import { getDesk } from '../bg.js';
 import { drawCat, CAT_NAME } from '../cat.js';
 import { FLOWERS } from '../flowers.js';
 import { mk, rr, pick, clamp, TAU, pageTex, PAGE_KINDS, bake } from '../textures.js';
-import { JUNK, WASHI, STAMPS, washiThumb, makeTapeStrip, pawPrints, postit } from '../ephemera.js';
+import { JUNK, WASHI, STAMPS, washiThumb, makeTapeStrip, pawPrints, postit, handwriting } from '../ephemera.js';
 import { photoScraps, toSprite } from '../photos.js';
 import { sfx } from '../sfx.js';
 import { deskProps, matchaRing } from '../props.js';
@@ -213,6 +213,39 @@ function memoryCells() {
   if (!game.day.memoryDone) return [{ label: 'step inside ✦', kind: 'memory', memory: m, thumb: fit(pol, 92, 70), sprite: pol }];
   return [itemCell('memory', pol), ...souvenirSprites(m).map((s) => itemCell(s.label, s.sprite))];
 }
+function askWrite(p) {
+  const inks = ['#3b3550', '#9b2335', '#2f4f7f', '#5d7741'];
+  let ink = inks[0];
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(30,20,10,.45);z-index:10';
+  wrap.innerHTML = `<div style="background:#fbf6e6;padding:18px;border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,.35);width:min(380px,88vw)">
+    <textarea maxlength="120" rows="3" placeholder="write something…" style="width:100%;box-sizing:border-box;border:0;border-bottom:1px solid rgba(90,120,165,.3);background:transparent;font:30px Caveat,cursive;color:${ink};resize:none;outline:none"></textarea>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+      ${inks.map((c, i) => `<button data-ink="${c}" aria-label="ink ${i + 1}" style="width:26px;height:26px;border-radius:50%;border:2px solid ${i ? 'transparent' : '#3a2e28'};background:${c};cursor:pointer"></button>`).join('')}
+      <span style="flex:1"></span>
+      <button data-a="cancel" style="font:600 15px Fraunces,Georgia,serif;padding:8px 14px;border-radius:10px;border:1px solid rgba(58,46,40,.3);background:#fff;cursor:pointer">Cancel</button>
+      <button data-a="ok" style="font:600 15px Fraunces,Georgia,serif;padding:8px 14px;border-radius:10px;border:0;background:#7f9c5b;color:#fffdf5;cursor:pointer">Write it</button>
+    </div></div>`;
+  document.body.appendChild(wrap);
+  const ta = wrap.querySelector('textarea');
+  setTimeout(() => ta.focus(), 30);
+  const close = (ok) => {
+    const text = ta.value.trim();
+    wrap.remove();
+    if (!ok || !text) return;
+    snapshot();
+    const sprite = handwriting(text, ink);
+    const L = { type: 'item', sprite, x: clamp(p.x + sprite.width / 2 - 20, SP.x + 20, SP.x + SP.w - 20), y: p.y, rot: rr(-0.03, 0.03), scale: 1, flip: 1, ink: true };
+    layers.push(L); sel = L;
+    sfx.scribble();
+  };
+  wrap.addEventListener('click', (e) => {
+    const d = e.target.dataset || {};
+    if (d.ink) { ink = d.ink; ta.style.color = ink; wrap.querySelectorAll('[data-ink]').forEach((b) => { b.style.borderColor = b.dataset.ink === ink ? '#3a2e28' : 'transparent'; }); return; }
+    if (d.a) close(d.a === 'ok'); else if (e.target === wrap) close(false);
+  });
+  ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); close(true); } if (e.key === 'Escape') close(false); e.stopPropagation(); });
+}
 function noteThumb() {
   const c = mk(92, 70), x = c.getContext('2d');
   x.fillStyle = '#fbe57a'; x.fillRect(22, 6, 50, 50);
@@ -392,7 +425,7 @@ function spawnCat() {
   };
   game.day.stats.visits++;
   sfx.meow();
-  if (firstCat) { toasts.add(`${CAT_NAME} is coming! Tape or glue scraps to keep them put`, 3.6); firstCat = false; }
+  if (firstCat) { toasts.add(`${CAT_NAME} is coming! Tape scraps down to keep them put`, 3.6); firstCat = false; }
 }
 function catBox() {
   if (!cat) return null;
@@ -413,7 +446,7 @@ function updateCat(dt) {
     if (cat.loafAt !== null && (prev - cat.loafAt) * (cat.x - cat.loafAt) <= 0) { cat.state = 'loaf'; cat.timer = 6; cat.loafAt = null; sfx.purr(); }
     let scattered = 0;
     for (const L of layers) {
-      if (L.type !== 'item' || cat.pushed.has(L) || L === (drag && drag.layer)) continue;
+      if (L.type !== 'item' || L.ink || cat.pushed.has(L) || L === (drag && drag.layer)) continue;
       if (Math.abs(L.x - cat.x) < 60 && L.y > cat.y - 120 && L.y < cat.y + 30) {
         cat.pushed.add(L);
         if (isPinned(L)) continue;
@@ -464,7 +497,7 @@ function setTool(tl) {
   sfx.click();
 }
 function syncToolButtons() {
-  buttons[2].primary = !!(tool && tool.id === 'glue');
+  buttons[2].primary = !!(tool && tool.id === 'write');
   buttons[4].primary = !!(tool && tool.id === 'cut');
 }
 function finish() {
@@ -497,6 +530,7 @@ export const journal = {
       }
     } else if (arg && arg.memoryDone) {
       game.day.memoryDone = true;
+      if (!save.memories.includes(arg.memoryDone)) { save.memories.push(arg.memoryDone); writeSave(); }
       tray[7] = memoryCells();
       tab = 7; scroll[7] = 0;
       toasts.clear();
@@ -505,7 +539,7 @@ export const journal = {
     buttons = [
       new Button({ x: 384, y: 30, w: 86, h: 50, label: 'Undo', size: 17, onClick: doUndo }),
       new Button({ x: 478, y: 30, w: 160, h: 50, label: `Paper: ${PAGE_KINDS[pageKind]}`, size: 15, onClick: () => { pageKind = (pageKind + 1) % PAGE_KINDS.length; buildPages(); buttons[1].label = `Paper: ${PAGE_KINDS[pageKind]}`; sfx.click(); } }),
-      new Button({ x: 646, y: 30, w: 130, h: 50, label: 'Glue stick', size: 16, onClick: () => setTool({ id: 'glue' }) }),
+      new Button({ x: 646, y: 30, w: 130, h: 50, label: '✎ Write', size: 16, onClick: () => setTool({ id: 'write' }) }),
       new Button({ x: 1018, y: 30, w: 246, h: 50, label: 'Finish & keep ✓', primary: true, size: 19, onClick: finish }),
       new Button({ x: 784, y: 30, w: 130, h: 50, label: '✂ Scissors', size: 16, onClick: () => setTool({ id: 'cut' }) }),
     ];
@@ -604,7 +638,7 @@ export const journal = {
     x.fillText(game.day.n === 3 ? 'Day 3 · a thank-you' : `Day ${game.day.n} · journal`, 34, 56);
     x.font = `22px ${F.hand}`;
     const hint = !tool ? 'drag junk onto the page · lift the top piece before the one under it'
-      : tool.id === 'glue' ? 'tap a piece to glue it down for good · tap Glue stick to stop'
+      : tool.id === 'write' ? 'tap the page where you want to write · tap Write to stop'
       : tool.id === 'cut' ? 'draw a loop around the part you want to cut out · tap Scissors to stop'
       : tool.id === 'tape' ? 'drag across the page to lay tape · tap the roll again to stop'
       : 'tap the page to stamp · tap the stamp again to stop';
@@ -622,7 +656,7 @@ export const journal = {
     if (tl) return applyTool(tl);
 
     const ti = tabAt(p);
-    if (ti >= 0) { tab = ti; if (tool && tool.kind) { tool = null; syncToolButtons(); } sfx.click(); return; }
+    if (ti >= 0) { tab = ti; if (tool && tool.kind) { tool = null; syncToolButtons(); } sfx.page(); return; }
     if (inRect(p, ARROWS.up)) { scroll[tab] = clamp(scroll[tab] - 220, 0, maxScroll()); return sfx.click(); }
     if (inRect(p, ARROWS.down)) { scroll[tab] = clamp(scroll[tab] + 220, 0, maxScroll()); return sfx.click(); }
     if (inRect(p, TRAY)) {
@@ -631,7 +665,7 @@ export const journal = {
       const cell = tray[tab][ci];
       if (cell.kind === 'upload') return askPhoto();
       if (cell.kind === 'note') return askNote();
-      if (cell.kind === 'memory') { sfx.shutter(); return game.go('memory', { memory: cell.memory }); }
+      if (cell.kind === 'memory') { sfx.paper(); return game.go('memory', { memory: cell.memory }); }
       if (cell.kind === 'item') {
         snapshot();
         const L = { type: 'item', sprite: cell.sprite, x: p.x, y: p.y, rot: rr(-0.12, 0.12), scale: 1, flip: 1 };
@@ -666,7 +700,11 @@ export const journal = {
       sel = null;
       return;
     }
-    if (tool && tool.id === 'glue') {
+    if (tool && tool.id === 'write') {
+      if (inSpread(p, 0)) askWrite(p);
+      return;
+    }
+    if (false) {
       const L = hitLayer(p);
       if (!L || L.type === 'decal') return;
       if (L.glued) { toasts.add('Already glued', 1.2); return; }
@@ -715,7 +753,7 @@ export const journal = {
         if (Math.hypot(p.x - last.x, p.y - last.y) > 4) {
           drag.pts.push({ x: p.x, y: p.y });
           drag.snip = (drag.snip || 0) + 1;
-          if (drag.snip % 6 === 0) sfx.click();
+          if (drag.snip % 5 === 0) sfx.snip();
         }
       } else if (drag.mode === 'tape') {
         let dx = p.x - drag.x0, dy = p.y - drag.y0;
@@ -729,7 +767,7 @@ export const journal = {
     let cur = 'default';
     if (!tool && Math.hypot(p.x - cup.x, p.y - cup.y) < 60) { game.cursor = 'grab'; for (const b of buttons) b.hover = false; return; }
     if (buttons.some((b) => b.hit(p)) || toolAt(p) || (cat && overCat(p)) || tabAt(p) >= 0 || inRect(p, ARROWS.up) || inRect(p, ARROWS.down) || trayCellAt(p) >= 0 && p.x > TRAY.x) cur = 'pointer';
-    else if (tool && inSpread(p, 20)) cur = tool.id === 'glue' ? 'cell' : 'crosshair';
+    else if (tool && inSpread(p, 20)) cur = tool.id === 'write' ? 'text' : 'crosshair';
     else if (sel && layers.includes(sel) && Math.hypot(p.x - rotHandle(sel).x, p.y - rotHandle(sel).y) < 18) cur = 'pointer';
     else if (hitLayer(p)) cur = 'grab';
     for (const b of buttons) b.hover = b.hit(p);
@@ -747,7 +785,7 @@ export const journal = {
         if (drag.fromTray) undo.pop(); else toasts.add('tossed', 1.1);
       } else if (drag.fromTray && !hintShown && layers.filter((l) => l.type === 'item').length >= 2) {
         hintShown = true;
-        toasts.add(`Tip: tape or glue things down before ${CAT_NAME} visits`, 3);
+        toasts.add(`Tip: tape things down before ${CAT_NAME} visits`, 3);
       }
     } else if (drag.mode === 'cut') {
       finishCut(drag.pts);

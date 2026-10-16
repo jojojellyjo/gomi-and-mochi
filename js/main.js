@@ -16,6 +16,30 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 let scale = 1, dpr = 1;
 
+// warm, lamp-lit evening mood laid over every scene
+let mood = null;
+function buildMood() {
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  const v = x.createRadialGradient(W * 0.45, H * 0.42, 220, W * 0.5, H * 0.5, 860);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(0.55, 'rgba(25,12,4,.14)'); v.addColorStop(1, 'rgba(18,8,2,.62)');
+  x.fillStyle = v; x.fillRect(0, 0, W, H);
+  return c;
+}
+function drawMood(x) {
+  if (!mood) mood = buildMood();
+  x.save();
+  x.globalCompositeOperation = 'multiply';
+  x.fillStyle = 'rgba(255,226,190,1)'; x.fillRect(0, 0, W, H);
+  x.globalCompositeOperation = 'source-over';
+  x.drawImage(mood, 0, 0);
+  x.globalCompositeOperation = 'soft-light';
+  const g = x.createRadialGradient(W * 0.42, H * 0.38, 0, W * 0.42, H * 0.38, 520);
+  g.addColorStop(0, 'rgba(255,200,120,.35)'); g.addColorStop(1, 'rgba(255,200,120,0)');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.restore();
+}
+
 function resize() {
   dpr = Math.min(window.devicePixelRatio || 1, 2);
   scale = Math.min(window.innerWidth / W, window.innerHeight / H);
@@ -74,6 +98,7 @@ function frame(now) {
   if (game.scene) {
     game.scene.update(dt);
     game.scene.draw(ctx);
+    if (game.sceneName !== 'memory') drawMood(ctx);
   }
   drawSpeaker(ctx, MUTE.x, MUTE.y, isMuted());
   requestAnimationFrame(frame);

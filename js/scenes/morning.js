@@ -168,10 +168,10 @@ export const morning = {
     if (phase === 'note') { phase = 'door2'; return; }
     const onNote = Math.abs(p.x - 600) < 70 && Math.abs(p.y - 610) < 45;
     const onBag = Math.abs(p.x - 600) < 110 && p.y > 480 && p.y < 720;
-    if (onNote && phase !== 'bag') { phase = 'note'; hand = { x: 600, y: 610, t: 0 }; sfx.pop(); return; }
+    if (onNote && phase !== 'bag') { phase = 'note'; hand = { x: 600, y: 610, t: 0 }; sfx.paper(); return; }
     if (onBag) {
       if (phase === 'door') { toasts.add('Read the note first?', 1.6); }
-      phase = 'bag'; btn.visible = true; hand = { x: 600, y: 540, t: 0 }; sfx.rip();
+      phase = 'bag'; btn.visible = true; hand = { x: 600, y: 540, t: 0 }; sfx.bag();
       toasts.add(info.memory ? 'There\'s a polaroid inside. Look for it in your journal' : 'More junk for the journal!', 3);
       return;
     }

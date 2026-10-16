@@ -18,9 +18,9 @@ const KEY = 'pressed.save.v1';
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
-    if (s && typeof s === 'object') return { days: s.days || 0, found: s.found || {}, seenIntro: !!s.seenIntro };
+    if (s && typeof s === 'object') return { days: s.days || 0, found: s.found || {}, seenIntro: !!s.seenIntro, memories: s.memories || [] };
   } catch (e) { /* storage unavailable or corrupt */ }
-  return { days: 0, found: {} };
+  return { days: 0, found: {}, memories: [] };
 }
 export const save = load();
 function write() {

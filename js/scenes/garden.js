@@ -167,6 +167,7 @@ export const garden = {
     }
     btn.enabled = game.day.picked.length > 0;
     btn.pulse = game.day.picked.length >= MAX;
+    if (Math.random() < dt * 0.25) sfx.chirp();
     toasts.update(dt);
   },
 

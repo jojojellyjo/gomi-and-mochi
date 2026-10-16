@@ -75,5 +75,14 @@ export const sfx = {
   chime() { [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.6, { vol: 0.09, delay: i * 0.08 })); },
   good() { [659, 880].forEach((f, i) => tone(f, 0.35, { vol: 0.1, delay: i * 0.07 })); },
   bad() { tone(300, 0.3, { type: 'triangle', vol: 0.1, to: 200 }); },
+  // soft paper rustle: a few filtered noise bursts
+  paper() { for (let i = 0; i < 4; i++) noise(0.12, { vol: 0.12, freq: 2200 + i * 500, type: 'bandpass', q: 0.7, delay: i * 0.07 }); noise(0.35, { vol: 0.05, freq: 900, type: 'lowpass', delay: 0.05 }); },
+  page() { noise(0.16, { vol: 0.09, freq: 3200, type: 'bandpass', q: 0.6 }); },
+  snip() { noise(0.035, { vol: 0.16, freq: 5200, type: 'highpass' }); tone(1800, 0.03, { type: 'square', vol: 0.02 }); },
+  scribble() { for (let i = 0; i < 6; i++) noise(0.05, { vol: 0.07, freq: 2600 + (i % 3) * 700, type: 'bandpass', q: 2, delay: i * 0.06 }); },
+  bag() { for (let i = 0; i < 6; i++) noise(0.1, { vol: 0.1, freq: 1500 + (i % 3) * 600, type: 'bandpass', q: 0.6, delay: i * 0.05 }); },
+  knock() { [0, 0.18].forEach((d) => { tone(160, 0.08, { vol: 0.3, to: 90, delay: d }); noise(0.04, { vol: 0.12, freq: 500, type: 'lowpass', delay: d }); }); },
+  chirp() { tone(2400, 0.08, { vol: 0.035, to: 3200 }); tone(2800, 0.06, { vol: 0.03, to: 3600, delay: 0.1 }); },
+  pour() { noise(0.5, { vol: 0.05, freq: 400, type: 'lowpass' }); },
   shutter() { noise(0.05, { vol: 0.25, freq: 4000 }); noise(0.07, { vol: 0.2, freq: 2500, delay: 0.09 }); },
 };

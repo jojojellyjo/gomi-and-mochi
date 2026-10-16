@@ -27,7 +27,7 @@ const POSES = {
   pinch: {
     palm: [-30, 62, 108, 98, 36],
     fingers: [F(20, 92, -0.22, 94, 23)],
-    thumb: F(-36, 58, 0.7, 60, 26),
+    thumb: F(-54, 70, 0.78, 58, 26),
     knuckles: [[40, 74], [58, 82], [72, 94]],
   },
   press: {
@@ -145,7 +145,7 @@ export function drawHand(x, { pose = 'point', s = 1, flip = false, rot = -0.55, 
 
   for (const f of P.fingers) knuckleLines(x, f, st);
   knuckleLines(x, P.thumb, st);
-  for (const f of P.fingers) drawNail(x, f, st);
   drawNail(x, P.thumb, st);
+  for (const f of P.fingers) drawNail(x, f, st);
   x.restore();
 }

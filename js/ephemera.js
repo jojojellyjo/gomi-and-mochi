@@ -328,10 +328,10 @@ function teaBag() {
   return bake(grain(c, 10));
 }
 
-function sticker() {
+function sticker(kindArg) {
   const s = 110, c = mk(s, s), x = c.getContext('2d');
   x.translate(s / 2, s / 2);
-  const kind = pick(['mushroom', 'cloud', 'onigiri', 'strawberry', 'succulent', 'sparkle']);
+  const kind = kindArg || pick(['mushroom', 'cloud', 'onigiri', 'strawberry', 'succulent', 'sparkle']);
   const shape = (fill, stroke) => {
     x.save();
     if (stroke) { x.lineWidth = 9; x.strokeStyle = '#fff'; x.lineJoin = 'round'; }
@@ -582,7 +582,8 @@ const PATTERNS = {
   },
 };
 function patternPaper(kind) {
-  const w = ri(150, 210), h = ri(120, 180);
+  // big sheets: snip out the bit you want with the scissors
+  const w = ri(300, 360), h = ri(360, 430);
   return bake(grain(tornScrap(w, h, PATTERNS[kind]), 12), { pad: 10, blur: 5, off: 2 });
 }
 
@@ -793,10 +794,29 @@ export const JUNK = {
   Bits: [
     { label: 'origami crane', make: crane, n: 2 },
     { label: 'wire heart', make: wireArt, n: 1 },
-    { label: 'button', make: button, n: 4 },
+    { label: 'button', make: button, n: 2 },
     { label: 'paper clip', make: paperclip, n: 2 },
     { label: 'twine', make: twine, n: 1 },
-    { label: 'pressed leaf', make: pressedLeaf, n: 3 },
-    { label: 'sticker', make: sticker, n: 6 },
+    ...['mushroom', 'cloud', 'onigiri', 'strawberry', 'succulent', 'sparkle'].map((k) => ({ label: k + ' sticker', make: () => sticker(k), n: 1 })),
   ],
 };
+
+// Handwriting written straight onto the page.
+export function handwriting(text, ink = '#3b3550', size = 34) {
+  const probe = mk(10, 10).getContext('2d');
+  probe.font = `${size}px ${F.hand}`;
+  const lines = [];
+  for (const para of text.split('\n')) {
+    let line = '';
+    for (const w of para.split(' ')) {
+      if (probe.measureText(line + w).width > 360 && line) { lines.push(line.trim()); line = ''; }
+      line += w + ' ';
+    }
+    lines.push(line.trim());
+  }
+  const w = Math.max(...lines.map((l) => probe.measureText(l).width)) + 20, h = lines.length * size * 1.15 + 16;
+  const c = mk(w, h), x = c.getContext('2d');
+  x.font = `${size}px ${F.hand}`; x.fillStyle = ink; x.textBaseline = 'top';
+  lines.forEach((l, i) => x.fillText(l, 10, 8 + i * size * 1.15));
+  return c;
+}

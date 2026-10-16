@@ -274,7 +274,8 @@ export const memory = {
     outBtn = new Button({ x: 1010, y: 26, w: 240, h: 56, label: 'Step out ↩', primary: true, visible: false, onClick: () => { sfx.click(); game.go('journal', { memoryDone: id }); } });
     toasts.clear();
     toasts.add('Find three keepsakes hidden in the memory', 3);
-    sfx.chime();
+    sfx.paper();
+    setTimeout(() => sfx.chime(), 350);
   },
   update(dt) {
     t += dt;

@@ -54,42 +54,38 @@ export const title = {
     if (!cover) cover = makeCover();
     if (!icons) icons = makeIcons();
     btn = new Button({
-      x: 760, y: 560, w: 320, h: 66, primary: true, size: 26,
-      label: save.days ? `Start day ${save.days + 1}` : 'Start your first day',
+      x: 780, y: 540, w: 320, h: 66, primary: true, size: 26,
+      label: save.days ? `Start day ${save.days + 1}` : 'Start day 1',
       onClick: () => { sfx.chime(); newDay(); game.go('morning'); },
     });
   },
   update(dt) { t += dt; },
   draw(x) {
     x.drawImage(getDesk(), 0, 0);
-    x.save(); x.translate(380, 410); x.rotate(-0.05); x.drawImage(cover, -cover.width / 2, -cover.height / 2); x.restore();
+    x.save(); x.translate(430, 410); x.rotate(-0.04); x.drawImage(cover, -cover.width / 2, -cover.height / 2); x.restore();
 
+    // a little index card: what you've collected so far
     x.save();
-    x.shadowColor = 'rgba(30,15,5,.5)'; x.shadowBlur = 8; x.shadowOffsetY = 2;
-    x.fillStyle = '#fdf7ea';
-    x.font = `600 40px ${F.serif}`;
-    x.fillText('Too pretty to throw away.', 720, 170);
-    x.font = `31px ${F.hand}`;
-    const lines = [
-      "✿  a bag of junk appears at Hana's door",
-      '✿  press balcony flowers, nice and evenly',
-      '✿  snip, tape & glue a junk-journal spread',
-      `✿  step into old polaroids… with ${CAT_NAME}`,
-    ];
-    lines.forEach((l, i) => x.fillText(l, 724, 232 + i * 44));
-    x.restore();
-
-    // herbarium shelf
-    x.save();
-    x.fillStyle = 'rgba(250,244,230,.92)';
-    x.beginPath(); x.roundRect(720, 420, 470, 104, 12); x.fill();
-    x.fillStyle = INK; x.font = `600 18px ${F.serif}`;
-    const found = Object.keys(save.found).length;
-    x.fillText(`Herbarium  ${found} / ${FLOWER_TYPES.length}`, 740, 446);
+    x.translate(940, 330); x.rotate(0.015);
+    x.fillStyle = 'rgba(30,15,5,.35)'; x.fillRect(-206, -146, 420, 300);
+    x.fillStyle = '#fbf6ea'; x.fillRect(-210, -150, 420, 300);
+    x.fillStyle = 'rgba(190,210,160,.8)'; x.fillRect(-40, -162, 80, 24);
+    x.fillStyle = INK; x.textAlign = 'left';
+    const mem = (save.memories || []).length, fl = Object.keys(save.found).length;
+    x.font = `600 22px ${F.serif}`; x.fillText('memories collected', -180, -92);
+    x.font = `600 40px ${F.serif}`; x.textAlign = 'right'; x.fillText(`${mem} / 3`, 180, -88);
+    for (let i = 0; i < 3; i++) {
+      x.save(); x.translate(-150 + i * 60, -50); x.rotate((i - 1) * 0.1);
+      x.fillStyle = i < mem ? '#ffffff' : 'rgba(58,46,40,.08)'; x.fillRect(-20, -16, 40, 46);
+      x.fillStyle = i < mem ? ['#e8c98a', '#8a6aa8', '#b8cfa0'][i] : 'rgba(58,46,40,.1)'; x.fillRect(-16, -12, 32, 30);
+      x.restore();
+    }
+    x.textAlign = 'left'; x.font = `600 22px ${F.serif}`; x.fillText('flowers collected', -180, 30);
+    x.font = `600 40px ${F.serif}`; x.textAlign = 'right'; x.fillText(`${fl} / ${FLOWER_TYPES.length}`, 180, 34);
     FLOWER_TYPES.forEach((type, i) => {
       const ic = icons[type][save.found[type] ? 'on' : 'off'];
-      const s = 48 / Math.max(ic.width, ic.height);
-      x.drawImage(ic, 748 + i * 63, 458, ic.width * s, ic.height * s);
+      const sc = 40 / Math.max(ic.width, ic.height);
+      x.drawImage(ic, -184 + i * 54, 58, ic.width * sc, ic.height * sc);
     });
     x.restore();
 
