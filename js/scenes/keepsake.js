@@ -41,7 +41,7 @@ function compose(image) {
   x.fillText(`${CAT_NAME} visited ${st.visits}× · ${st.paws ? st.paws + ' paw print' + (st.paws > 1 ? 's' : '') : 'no paw prints'} · ${st.pets} pet${st.pets === 1 ? '' : 's'}`, -190, 4);
   x.fillText(`herbarium ${Object.keys(save.found).length} / ${FLOWER_TYPES.length}`, -190, 40);
   x.font = `italic 600 22px ${F.serif}`; x.fillStyle = 'rgba(58,46,40,.6)';
-  x.textAlign = 'right'; x.fillText('Pressed ✿', 300, 66);
+  x.textAlign = 'right'; x.fillText('Gomi & Mochi ✿', 300, 66);
   x.restore();
   x.save(); x.translate(W / 2 + 400, 950); drawCat(x, { pose: 'sit', t: 1, dir: -1, s: 0.75 }); x.restore();
   return c;
@@ -51,7 +51,7 @@ function download() {
   const done = (b) => {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(b);
-    a.download = `pressed-day-${game.day.n}.png`;
+    a.download = `gomi-and-mochi-day-${game.day.n}.png`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     toasts.add('Saved to your downloads ✿');
@@ -61,9 +61,9 @@ function download() {
 
 async function share() {
   const go = async (b) => {
-    const file = new File([b], `pressed-day-${game.day.n}.png`, { type: 'image/png' });
+    const file = new File([b], `gomi-and-mochi-day-${game.day.n}.png`, { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: 'My Pressed journal', text: `Day ${game.day.n} in my Pressed journal ✿` }); } catch (e) { /* cancelled */ }
+      try { await navigator.share({ files: [file], title: 'My Gomi & Mochi journal', text: `Day ${game.day.n} of my Gomi & Mochi journal ✿` }); } catch (e) { /* cancelled */ }
     } else download();
   };
   if (blob) go(blob); else card.toBlob((b) => { blob = b; go(b); });

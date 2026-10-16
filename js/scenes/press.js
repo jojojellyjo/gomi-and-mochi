@@ -147,7 +147,7 @@ export const press = {
     x.save();
     x.fillStyle = '#fdf7ea'; x.shadowColor = 'rgba(30,15,5,.5)'; x.shadowBlur = 6;
     x.font = `600 32px ${F.serif}`;
-    x.fillText(phase === 'done' ? 'Pressed and ready' : `The press · ${idx + 1} of ${queue.length}`, 34, 58);
+    x.fillText(phase === 'done' ? 'Pressed and ready ✿' : `The press · ${idx + 1} of ${queue.length}`, 34, 58);
     x.font = `25px ${F.hand}`;
     const hint = phase === 'ready' ? 'tap to close the press'
       : phase === 'tighten' ? 'hold a wing nut to tighten · twist it clockwise to tighten, anticlockwise to unwind'

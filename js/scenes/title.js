@@ -20,12 +20,13 @@ function makeCover() {
   x.fillStyle = '#4a3a2c'; x.fillRect(w - 70, 0, 18, h);
   x.restore();
   x.fillStyle = '#f6efdf';
-  x.beginPath(); x.roundRect(90, 150, 300, 170, 8); x.fill();
+  x.beginPath(); x.roundRect(60, 140, 360, 200, 8); x.fill();
   x.strokeStyle = 'rgba(80,60,40,.5)'; x.lineWidth = 1.5;
-  x.beginPath(); x.roundRect(100, 160, 280, 150, 6); x.stroke();
+  x.beginPath(); x.roundRect(70, 150, 340, 180, 6); x.stroke();
   x.fillStyle = INK; x.textAlign = 'center';
-  x.font = `600 74px ${F.serif}`; x.fillText('Pressed', 240, 250);
-  x.font = `30px ${F.hand}`; x.fillText('a little junk journal', 240, 290);
+  x.font = `600 64px ${F.serif}`; x.fillText('Gomi', 240, 222);
+  x.font = `600 46px ${F.serif}`; x.fillText('& Mochi', 240, 272);
+  x.font = `28px ${F.hand}`; x.fillText('a junk journal story', 240, 312);
   const daisy = flowerSprite('daisy', 46);
   x.save(); x.translate(330, 430); x.rotate(0.3); x.drawImage(daisy, -daisy.width / 2, -daisy.height / 2); x.restore();
   const fern = flowerSprite('fern', 60);
@@ -66,14 +67,14 @@ export const title = {
     x.save();
     x.shadowColor = 'rgba(30,15,5,.5)'; x.shadowBlur = 8; x.shadowOffsetY = 2;
     x.fillStyle = '#fdf7ea';
-    x.font = `600 46px ${F.serif}`;
-    x.fillText('Forage. Press. Journal.', 720, 170);
+    x.font = `600 40px ${F.serif}`;
+    x.fillText('Too pretty to throw away.', 720, 170);
     x.font = `31px ${F.hand}`;
     const lines = [
-      '✿  pick flowers from the garden',
-      '✿  press them nice and evenly',
-      '✿  junk-journal a keepsake spread',
-      `✿  …while ${CAT_NAME} tries very hard to help`,
+      "✿  a bag of junk appears at Hana's door",
+      '✿  press balcony flowers, nice and evenly',
+      '✿  snip, tape & glue a junk-journal spread',
+      `✿  step into old polaroids… with ${CAT_NAME}`,
     ];
     lines.forEach((l, i) => x.fillText(l, 724, 232 + i * 44));
     x.restore();

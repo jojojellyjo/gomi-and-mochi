@@ -242,7 +242,7 @@ function drawEnding(x) {
     x.save();
     x.fillStyle = '#fdf7ea'; x.textAlign = 'center';
     x.font = `600 52px ${F.serif}`; x.fillText('the end', 640, 560);
-    x.font = `28px ${F.hand}`; x.fillText('thank you for playing Pressed ✿', 640, 604);
+    x.font = `28px ${F.hand}`; x.fillText('thank you for playing Gomi & Mochi ✿', 640, 604);
     x.restore();
     btn.draw(x, t);
   }

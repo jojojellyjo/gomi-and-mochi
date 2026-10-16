@@ -206,5 +206,5 @@ function drawIntro(x) {
   x.fillText(`${introIdx + 1} / ${INTRO.length}  ·  tap to continue`, 350, 196);
   x.restore();
   x.fillStyle = '#fdf7ea'; x.font = `600 28px ${F.serif}`; x.textAlign = 'center';
-  x.fillText(`${HANA}'s week`, 640, 110);
+  x.fillText('Gomi & Mochi', 640, 110);
 }

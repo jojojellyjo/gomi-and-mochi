@@ -1,4 +1,4 @@
-# Pressed — Product Requirements Document
+# Gomi & Mochi — Product Requirements Document
 
 **Status:** In development · **Owner:** Joanne · **Last updated:** 14 Oct 2026
 **Competition:** Twigpine Project Treetop, Round 01 (Games) — https://twigpine.com/treetop
@@ -42,7 +42,7 @@
 ### Submission form (8 fields, 2 optional)
 | Field | Required | Our value |
 |---|---|---|
-| Name | ✅ | Pressed |
+| Name | ✅ | Gomi & Mochi |
 | One line about it | optional | "Forage flowers, press them just right and junk-journal a keepsake — while your cat tries to help." |
 | Where we play it | ✅ | Public game URL (GitHub Pages) |
 | Source | ✅ | Public GitHub repo |
